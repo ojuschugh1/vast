@@ -190,21 +190,24 @@ def PointerType : HighLevelType< "Pointer",
   let parameters = (ins
     "Type":$elementType,
     "bool":$isConst,
-    "bool":$isVolatile
+    "bool":$isVolatile,
+    "bool":$isRestrict
   );
 
   let extraClassDeclaration = default_dl_interface_impl #
   [{
     bool isConst() const { return this->getIsConst(); }
     bool isVolatile() const { return this->getIsVolatile(); }
+    bool isRestrict() const { return this->getIsRestrict(); }
   }];
 
   let builders = [
     TypeBuilder<(ins
       "Type":$elementType,
       CArg<"bool", "false">:$isConst,
-      CArg<"bool", "false">:$isVolatile
-    ), [{ return $_get($_ctxt, elementType, isConst, isVolatile); }]>
+      CArg<"bool", "false">:$isVolatile,
+      CArg<"bool", "false">:$isRestrict
+    ), [{ return $_get($_ctxt, elementType, isConst, isVolatile, isRestrict); }]>
   ];
 
   let skipDefaultBuilders = 1;

@@ -561,7 +561,7 @@ namespace vast::hl
             auto val = ctx.vars.lookup(var_decl);
             VAST_ASSERT(val);
 
-            auto rty = types.lvalue_convert(expr->getType());
+            auto rty = val.getType(); //types.lvalue_convert(expr->getType());
 
             if (var_decl->isFileVarDecl()) {
                 auto var = val.getDefiningOp< VarDecl >();

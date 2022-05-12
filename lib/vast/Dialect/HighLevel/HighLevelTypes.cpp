@@ -156,17 +156,18 @@ namespace vast::hl
             return Type();
         }
 
-        bool c = false, v = false;
+        bool c = false, v = false, r = false;
         if (succeeded(parser.parseOptionalComma())) {
             c = succeeded(parser.parseOptionalKeyword("const"));
             v = succeeded(parser.parseOptionalKeyword("volatile"));
+            r = succeeded(parser.parseOptionalKeyword("restrict"));
         }
 
         if (failed(parser.parseGreater())) {
             return Type();
         }
 
-        return PointerType::get(ctx, element, c, v);
+        return PointerType::get(ctx, element, c, v, r);
     }
 
     void print_pointer_type(const PointerType &type, DialectPrinter &printer)
@@ -174,10 +175,11 @@ namespace vast::hl
         printer << "<";
         printer.printType(type.getElementType());
 
-        if ( type.getIsVolatile() || type.getIsConst() ) {
+        if ( type.getIsVolatile() || type.getIsConst() || type.getIsRestrict() ) {
             printer << ",";
             if (type.isConst())    { printer << " const"; }
             if (type.isVolatile()) { printer << " volatile"; }
+            if (type.isRestrict()) { printer << " restrict"; }
         }
 
         printer << ">";

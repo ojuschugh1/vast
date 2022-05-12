@@ -190,8 +190,12 @@ namespace vast::hl
 
     mlir::Type HighLevelTypeConverter::do_convert(const clang::PointerType *ty, Quals quals) {
         return PointerType::get(
-            &ctx.getMLIRContext(), convert(ty->getPointeeType()), quals.hasConst(),
-            quals.hasVolatile());
+            & ctx.getMLIRContext()
+            , convert(ty->getPointeeType())
+            , quals.hasConst()
+            , quals.hasVolatile()
+            , quals.hasRestrict()
+        );
     }
 
     mlir::Type HighLevelTypeConverter::do_convert(const clang::RecordType *ty, Quals quals) {
