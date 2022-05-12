@@ -31,7 +31,7 @@ namespace vast::hl
         mlir::Type lvalue_convert(clang::QualType ty);
         mlir::Type lvalue_convert(const clang::Type *ty, Quals quals = {});
 
-        mlir::FunctionType convert(const clang::FunctionType *ty);
+        mlir::FunctionType convert(const clang::FunctionDecl *ty);
 
         // We need to emit data layout - that means we need to remember for
         // converted type its bitsize. For now each conversion functions is *required*

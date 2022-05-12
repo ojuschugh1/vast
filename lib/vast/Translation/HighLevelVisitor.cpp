@@ -1217,7 +1217,7 @@ namespace vast::hl
         llvm::ScopedHashTableScope scope(ctx.vars);
 
         auto loc  = builder.get_location(decl->getSourceRange());
-        auto type = types.convert(decl->getFunctionType());
+        auto type = types.convert(decl);
         VAST_ASSERT(type);
 
         // create function header, that will be later filled with function body

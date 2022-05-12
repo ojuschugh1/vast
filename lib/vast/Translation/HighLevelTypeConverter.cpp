@@ -244,16 +244,13 @@ namespace vast::hl
         return ArrayType::get(&ctx.getMLIRContext(), element_type, get_size_attr(ty));
     }
 
-    mlir::FunctionType HighLevelTypeConverter::convert(const clang::FunctionType *ty) {
+    mlir::FunctionType HighLevelTypeConverter::convert(const clang::FunctionDecl *decl) {
         llvm::SmallVector< mlir::Type > args;
-
-        if (auto prototype = clang::dyn_cast< clang::FunctionProtoType >(ty)) {
-            for (auto param : prototype->getParamTypes()) {
-                args.push_back(lvalue_convert(param));
-            }
+        for (auto param : decl-> parameters()) {
+            args.push_back(lvalue_convert(param->getType()));
         }
 
-        auto rty = convert(ty->getReturnType());
+        auto rty = convert(decl->getReturnType());
         return mlir::FunctionType::get(&ctx.getMLIRContext(), args, rty);
     }
 
