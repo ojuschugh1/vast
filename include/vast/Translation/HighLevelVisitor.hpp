@@ -422,9 +422,12 @@ namespace vast::hl
         }
 
         template< Predicate pred >
+        // FIXME(Heno): rename icmp
         Value make_icmp(clang::BinaryOperator *expr) {
             auto ty = expr->getLHS()->getType();
             if (ty->isIntegerType())
+                return make_cmp< pred >(expr);
+            if (ty->isPointerType())
                 return make_cmp< pred >(expr);
             return Value();
         }
