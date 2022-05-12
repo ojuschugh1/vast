@@ -1112,7 +1112,26 @@ namespace vast::hl
             return types.convert(underlying);
         }();
 
-        return builder.define_type(loc, type, name);
+        auto def = builder.define_type(loc, type, name);
+
+        if (decl->hasAttrs()) {
+            auto parse = [this] (auto attr) {
+                std::string buff; llvm::raw_string_ostream stream(buff);
+                auto policy = ctx.getASTContext().getPrintingPolicy();
+                attr->printPretty(stream, policy);
+                llvm::StringRef ref(buff);
+                ref.consume_front(" __attribute__((annotate(\"");
+                ref.consume_back("\")))");
+                return ref.str();
+            };
+
+            for (auto attr: decl->getAttrs()) {
+                auto annot = mlir::StringAttr::get(def->getContext(), parse(attr));
+                def->setAttr("annotation", AnnotationAttr::get(annot));
+            }
+        }
+
+        return def;
     }
 
     ValueOrStmt CodeGenVisitor::VisitTypeAliasDecl(clang::TypeAliasDecl *decl) {
