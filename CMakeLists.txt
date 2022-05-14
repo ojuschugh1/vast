@@ -130,6 +130,20 @@ enable_sanitizers(vast_settings)
 include(cmake/static_analyzers.cmake)
 
 #
+# Python Configuration
+#
+
+option(VAST_BINDINGS_PYTHON_ENABLED "Enables VAST Python bindings." ON)
+
+if(VAST_BINDINGS_PYTHON_ENABLED)
+  message(STATUS "VAST Python bindings are enabled.")
+  include(MLIRDetectPythonEnv)
+  mlir_configure_python_dev_packages()
+else()
+  message(STATUS "VAST Python bindings are disabled.")
+endif()
+
+#
 # VAST libraries
 #
 add_subdirectory(include/vast)
