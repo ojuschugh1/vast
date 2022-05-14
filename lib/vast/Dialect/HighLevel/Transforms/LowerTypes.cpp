@@ -81,7 +81,9 @@ namespace vast::hl
                has_hl_typeattr(op);
     }
 
-    bool should_lower(mlir::Operation *op) { return !has_hl_type(op); }
+    bool should_lower(mlir::Operation *op) {
+        return !has_hl_type(op);
+    }
 
     struct TypeConverter : mlir::TypeConverter {
         using types_t       = mlir::SmallVector< mlir::Type >;
@@ -108,9 +110,9 @@ namespace vast::hl
             // Use provided data layout to get the correct type.
             addConversion([&](hl::PointerType t) { return this->convert_ptr_type(t); });
             addConversion([&](mlir::FunctionType t) { return this->convert_fn_type(t); });
-            addConversion([&](hl::ArrayType t) {
-                    return this->convert_const_arr_type(t);
-            });
+            // addConversion([&](hl::ArrayType t) {
+            //         return this->convert_const_arr_type(t);
+            // });
             // TODO(lukas): This one is tricky, because ideally `hl.void` is "no value".
             //              But if we lowered it such, than we need to remove the previous
             //              value and everything gets more complicated.
@@ -261,7 +263,7 @@ namespace vast::hl
 
     // Get SignatureConversion if all the sub-conversion are successful, no value otherwise.
     auto get_fn_signature(auto &&tc, mlir::FuncOp fn, bool variadic)
-    -> std::optional< mlir::TypeConverter::SignatureConversion >
+        -> std::optional< mlir::TypeConverter::SignatureConversion >
     {
         mlir::TypeConverter::SignatureConversion sigconvert(fn.getNumArguments());
         for (auto arg : llvm::enumerate(fn.getType().getInputs()))
@@ -332,7 +334,7 @@ namespace vast::hl
 
         template< typename Filter >
         auto lower_attrs(mlir::ArrayRef< mlir::NamedAttribute > attrs, Filter &&filter) const
-        -> mlir::SmallVector< mlir::NamedAttribute, 4 >
+            -> mlir::SmallVector< mlir::NamedAttribute, 4 >
         {
             mlir::SmallVector< mlir::NamedAttribute, 4 > out;
             for (const auto &attr : attrs)
