@@ -462,6 +462,13 @@ namespace vast::hl
                     rewriter.replaceOp(op, {loaded});
                     return mlir::success();
                 }
+
+                // FIXME(Lukas):
+                if (op.kind() == hl::CastKind::IntegralCast)
+                {
+                    rewriter.replaceOp(op, {ops.getOperands()[0]});
+                    return mlir::success();
+                }
                 return mlir::failure();
             }
 
