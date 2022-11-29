@@ -62,14 +62,16 @@ namespace vast::hl
         {
             // `getType()` is not reliable in reality since for example for `mlir::TypeAttr`
             // it returns none. Lowering of types in attributes will be always best effort.
-            if (isHighLevelType(attr.getValue().getType()))
-                return true;
-            if (auto type_attr = attr.getValue().dyn_cast< mlir::TypeAttr >();
-                type_attr && contains_hl_type(type_attr.getValue()))
-            {
-                return true;
-            }
+            auto attr_value = attr.getValue();
+            if (auto typed = attr_value.dyn_cast_or_null< mlir::TypedAttr >()) {
+                if (isHighLevelType(typed.getType())) {
+                    return true;
+                }
 
+                if (contains_hl_type(typed.getType())) {
+                    return true;
+                }
+            }
         }
         return false;
     }
@@ -248,8 +250,8 @@ namespace vast::hl
             auto [dims, nested_ty] = arr.dim_and_type();
             std::vector< int64_t > coerced_dim;
             for (auto dim : dims) {
-                if (dim.hasValue()) {
-                    coerced_dim.push_back(dim.getValue());
+                if (dim.has_value()) {
+                    coerced_dim.push_back(dim.value());
                 } else {
                     coerced_dim.push_back(-1 /* unknown dim */ );
                 }
