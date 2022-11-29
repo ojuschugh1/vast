@@ -9,7 +9,7 @@ include "vast/Interfaces/SymbolInterface.td"
 
 // TODO(lukas): Add type constraints.
 def LowLevel_StructGEPOp
-  : LowLevel_Op< "gep", [NoSideEffect] >
+  : LowLevel_Op< "gep" >
   , Arguments<(ins AnyType:$record, I32Attr:$idx, StrAttr:$name)>
   , Results<(outs AnyType:$element)>
 {
@@ -18,7 +18,7 @@ def LowLevel_StructGEPOp
 }
 
 def UninitializedVar
-    : LowLevel_Op< "unintialized_var", [VastSymbol, NoSideEffect] >
+    : LowLevel_Op< "unintialized_var", [VastSymbol] >
     , Results<(outs AnyType:$result)>
 {
     let summary = "Declaration of variable that have not been initialized yet.";
