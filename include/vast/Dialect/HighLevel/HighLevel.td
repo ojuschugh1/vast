@@ -11,7 +11,6 @@ include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/IR/RegionKindInterface.td"
 
 include "vast/Interfaces/SymbolInterface.td"
-include "vast/Interfaces/TypedAttrInterface.td"
 
 def HighLevel_Dialect : Dialect {
     let name = "hl";
