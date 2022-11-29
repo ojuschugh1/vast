@@ -139,7 +139,7 @@ def FuncOp : HighLevel_Op< "func", [
 }
 
 def TypeDeclOp
-  : HighLevel_Op< "type", [NoSideEffect, VastSymbol] >
+  : HighLevel_Op< "type", [VastSymbol] >
   , Arguments<(ins StrAttr:$name)>
 {
   let summary = "VAST type declaration";
@@ -149,7 +149,7 @@ def TypeDeclOp
 }
 
 def TypeDefOp
-  : HighLevel_Op< "typedef", [NoSideEffect, VastSymbol] >
+  : HighLevel_Op< "typedef", [VastSymbol] >
   , Arguments<(ins StrAttr:$name, TypeAttr:$type)>
 {
   let summary = "VAST typedef operation";
@@ -163,7 +163,7 @@ def TypeDefOp
 }
 
 def EnumConstantOp
-  : HighLevel_Op< "enum.const", [NoSideEffect] >
+  : HighLevel_Op< "enum.const" >
   , Arguments<(ins StrAttr:$name, TypedAttrInterface:$value)>
 {
   let summary = "VAST enum constant declaration";
@@ -209,7 +209,7 @@ def EnumConstantOp
 def EnumRegion : Region< HasOneBlock, "enum constants region" >;
 
 def EnumDeclOp
-  : HighLevel_Op< "enum", [NoSideEffect, NoTerminator, VastSymbol] >
+  : HighLevel_Op< "enum", [NoTerminator, VastSymbol] >
   // TODO(Heno): check integer like type attr
   , Arguments<(ins StrAttr:$name, TypeAttr:$type)>
 {
@@ -234,7 +234,7 @@ def EnumDeclOp
 }
 
 class RecordLikeDeclOp< string mnemonic, list< Trait > traits = [] >
-    : HighLevel_Op< mnemonic, !listconcat(traits, [NoSideEffect, NoTerminator, VastSymbol]) >
+    : HighLevel_Op< mnemonic, !listconcat(traits, [NoTerminator, VastSymbol]) >
     , Arguments<(ins StrAttr:$name)>
 {
   // TODO(Heno): add region constraints
@@ -262,7 +262,7 @@ def UnionDeclOp : RecordLikeDeclOp<"union"> {
 }
 
 def FieldDeclOp
-  : HighLevel_Op< "field", [NoSideEffect, VastSymbol] >
+  : HighLevel_Op< "field", [VastSymbol] >
   , Arguments<(ins StrAttr:$name, TypeAttr:$type, OptionalAttr<I32Attr>:$bits)>
 {
   let summary = "VAST record field declaration";
@@ -330,7 +330,7 @@ def IndirectCallOp
 }
 
 def ExprOp
-  : HighLevel_Op< "expr", [RecursiveSideEffects, SingleBlock] >
+  : HighLevel_Op< "expr", [SingleBlock] >
   , Results<(outs AnyType:$result)>
 {
   let summary = "VAST expression";
@@ -347,7 +347,7 @@ def ExprOp
 }
 
 def ReturnOp
-  : HighLevel_Op< "return", [Terminator, NoSideEffect] >
+  : HighLevel_Op< "return", [Terminator] >
   , Arguments<(ins Variadic<AnyType>:$result)>
 {
   let assemblyFormat = "($result^ `:` type($result))? attr-dict";
@@ -359,7 +359,7 @@ def ReturnOp
 }
 
 def DeclRefOp
-  : HighLevel_Op< "ref", [NoSideEffect, SameOperandsAndResultType] >
+  : HighLevel_Op< "ref", [SameOperandsAndResultType] >
   , Arguments<(ins AnyType:$decl)>
   , Results<(outs AnyType:$result)>
 {
@@ -370,7 +370,7 @@ def DeclRefOp
 }
 
 def FuncRefOp
-  : HighLevel_Op< "funcref", [NoSideEffect] >
+  : HighLevel_Op< "funcref" >
   , Arguments<(ins FlatSymbolRefAttr:$function)>
   , Results<(outs AnyType:$result)>
 {
@@ -381,7 +381,7 @@ def FuncRefOp
 }
 
 def GlobalRefOp
-  : HighLevel_Op< "globref", [NoSideEffect] >
+  : HighLevel_Op< "globref" >
   , Arguments<(ins StrAttr:$global)>
   , Results<(outs AnyType:$result)>
 {
@@ -392,7 +392,7 @@ def GlobalRefOp
 }
 
 def EnumRefOp
-  : HighLevel_Op< "enumref", [NoSideEffect] >
+  : HighLevel_Op< "enumref" >
   , Arguments<(ins StrAttr:$value)>
   , Results<(outs AnyType:$result)>
 {
@@ -403,7 +403,7 @@ def EnumRefOp
 }
 
 def ConstantOp
-  : HighLevel_Op< "const", [ConstantLike, NoSideEffect, AllTypesMatch< ["value", "result"]>] >
+  : HighLevel_Op< "const", [ConstantLike, AllTypesMatch< ["value", "result"]>] >
   , Arguments<(ins TypedAttrInterface:$value)>
   , Results<(outs AnyType:$result)>
 {
@@ -430,7 +430,7 @@ def ConstantOp
   let assemblyFormat = "$value attr-dict";
 }
 
-def UnreachableOp : HighLevel_Op<"unreachable", [Terminator, NoSideEffect]> {
+def UnreachableOp : HighLevel_Op<"unreachable", [Terminator]> {
   let summary = "VAST unreachable operation";
   let description = [{ VAST unreachable operation }];
   let assemblyFormat = "attr-dict";
@@ -605,7 +605,7 @@ def CastKind : CastKindList< "CastKind", "cast kind", [
 ] >;
 
 class CastOp< string mnemonic, list< Trait > traits = [] >
-    : HighLevel_Op< mnemonic, !listconcat(traits, [NoSideEffect]) >
+    : HighLevel_Op< mnemonic, traits >
     , Arguments<(ins AnyType:$value, CastKind:$kind)>
     , Results<(outs AnyType:$result)>
 {
@@ -620,7 +620,7 @@ def CStyleCastOp     : CastOp< "cstyle_cast", [] >;
 def BuiltinBitCastOp : CastOp< "builtin_bitcast", [] >;
 
 class ArithBinOp< string mnemonic, list< Trait > traits = [] >
-    : HighLevel_Op< mnemonic, !listconcat(traits, [NoSideEffect, SameOperandsAndResultType]) >
+    : HighLevel_Op< mnemonic, !listconcat(traits, [SameOperandsAndResultType]) >
     , Arguments<(ins AnyType:$lhs, AnyType:$rhs)>
     , Results<(outs AnyType:$result)>
 {
@@ -657,7 +657,7 @@ def BinAndOp : ArithBinOp<"bin.and", []>;
 
 
 class LogicBinOp< string mnemonic, list< Trait > traits = [] >
-    : HighLevel_Op< mnemonic, !listconcat(traits, [NoSideEffect]) >
+    : HighLevel_Op< mnemonic, traits >
     , Arguments<(ins AnyType:$lhs, AnyType:$rhs)>
     , Results<(outs AnyType:$result)>
 {
@@ -679,7 +679,7 @@ def BinLAndOp : LogicBinOp<"bin.land", []>;
 def BinLOrOp  : LogicBinOp< "bin.lor", []>;
 
 def BinComma
-  : HighLevel_Op< "bin.comma", [NoSideEffect] >
+  : HighLevel_Op< "bin.comma" >
   , Arguments<(ins AnyType:$lhs, AnyType:$rhs)>
   , Results<(outs AnyType:$result)>
 {
@@ -690,7 +690,7 @@ def BinComma
 
 class ShiftOp< string mnemonic, list< Trait > traits = [] >
     : HighLevel_Op< mnemonic, !listconcat(traits, [
-        NoSideEffect, AllTypesMatch<["lhs", "result"]>
+        AllTypesMatch<["lhs", "result"]>
     ])>
     , Arguments<(ins IntegerLikeType:$lhs, IntegerLikeType:$rhs)>
     , Results<(outs IntegerLikeType:$result)>
@@ -804,7 +804,7 @@ def Predicate : PredicateList< "Predicate", "comparison predicate", [
 
 
 def CmpOp
-  : HighLevel_Op< "cmp", [NoSideEffect] >
+  : HighLevel_Op< "cmp" >
   , Arguments<(ins Predicate:$predicate, AnyType:$lhs, AnyType:$rhs)>
   , Results<(outs IntOrBoolType:$result)>
 {
@@ -845,7 +845,7 @@ def PreIncOp  : UnInplaceOp<  "pre.inc", [] >;
 def PreDecOp  : UnInplaceOp<  "pre.dec", [] >;
 
 class TypePreservingUnOp< string mnemonic, list< Trait > traits = [] >
-    : HighLevel_Op< mnemonic, !listconcat(traits, [NoSideEffect, SameOperandsAndResultType]) >
+    : HighLevel_Op< mnemonic, !listconcat(traits, [SameOperandsAndResultType]) >
     , Arguments<(ins AnyType:$arg)>
     , Results<(outs AnyType:$result)>
 {
@@ -903,7 +903,7 @@ def AddrLabelExpr
 }
 
 def InitListExpr
-  : HighLevel_Op< "initlist", [NoSideEffect] >
+  : HighLevel_Op< "initlist" >
   , Arguments<(ins Variadic<AnyType>:$elements)>
   , Results<(outs Variadic<AnyType>)>
 {
@@ -930,7 +930,7 @@ def SubscriptOp
 }
 
 class TypeTraitOp< string mnemonic, list< Trait > traits = [] >
-  : HighLevel_Op< mnemonic, !listconcat(traits, [NoSideEffect]) >
+  : HighLevel_Op< mnemonic, traits >
   , Arguments<(ins TypeAttr:$arg)>
   , Results<(outs IntegerLikeType:$result)>
 {
@@ -948,7 +948,7 @@ def AlignOfTypeOp : TypeTraitOp< "alignof.type" > {
 }
 
 class ExprTraitOp< string mnemonic, list< Trait > traits = [] >
-  : HighLevel_Op< mnemonic, !listconcat(traits, [RecursiveSideEffects]) >
+  : HighLevel_Op< mnemonic, traits >
   , Results<(outs IntegerLikeType:$result)>
 {
   let regions = (region SizedRegion<1>:$expr);

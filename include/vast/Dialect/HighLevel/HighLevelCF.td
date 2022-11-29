@@ -5,7 +5,7 @@
 
 class ControlFlowOp< string mnemonic, list< Trait > traits = [] >
     : HighLevel_Op< mnemonic, !listconcat(traits,
-        [SingleBlock, NoTerminator, NoRegionArguments, RecursiveSideEffects]
+        [SingleBlock, NoTerminator, NoRegionArguments]
       ) >
 {
     let summary = "VAST control flow operation";
@@ -14,7 +14,7 @@ class ControlFlowOp< string mnemonic, list< Trait > traits = [] >
 
 def HighLevel_CondYieldOp : HighLevel_Op< "cond.yield", [
   // TODO(Heno): add ReturnLike trait
-  NoSideEffect, Terminator, ParentOneOf<["IfOp", "WhileOp", "ForOp", "DoOp"]>
+  Terminator, ParentOneOf<["IfOp", "WhileOp", "ForOp", "DoOp"]>
 ] > {
   let summary = "condition yield operation";
   let description = [{
@@ -35,7 +35,7 @@ def HighLevel_CondYieldOp : HighLevel_Op< "cond.yield", [
 
 def HighLevel_ValueYieldOp : HighLevel_Op< "value.yield", [
   // TODO(Heno): add ReturnLike trait
-  NoSideEffect, Terminator
+  Terminator
 ] > {
   let summary = "value yield operation";
   let description = [{
@@ -294,7 +294,7 @@ def HighLevel_DefaultOp : ControlFlowOp< "default" >
 }
 
 def HighLevel_LabelDeclOp
-  : HighLevel_Op< "label.decl", [NoSideEffect] >
+  : HighLevel_Op< "label.decl" >
   , Arguments<(ins StrAttr:$name)>
   , Results<(outs LabelType:$result)>
 {
@@ -325,7 +325,7 @@ def HighLevel_GotoStmt
   let assemblyFormat = [{ $label attr-dict }];
 }
 
-def HighLevel_SkipStmt : HighLevel_Op< "skip", [NoSideEffect] >
+def HighLevel_SkipStmt : HighLevel_Op< "skip" >
 {
   let summary = "VAST skip statement";
   let description = [{ VAST skip statement }];
