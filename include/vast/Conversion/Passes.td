@@ -29,6 +29,10 @@ def HLToFunc_pdll : Pass<"vast-hl-to-func-pdll", "mlir::ModuleOp"> {
 
 #endif // ENABLE_PDLL_CONVERSIONS
 
+//
+// To MLIR upstream dialects passes
+//
+
 def HLFuncToFunc : Pass<"vast-hl-to-func", "mlir::ModuleOp"> {
   let summary = "Lower high-level functions to func.func operations.";
   let description = [{
@@ -43,6 +47,10 @@ def HLFuncToFunc : Pass<"vast-hl-to-func", "mlir::ModuleOp"> {
   ];
 }
 
+//
+// To LLVM Dialect passes
+//
+
 def CoreToLLVM : Pass<"vast-core-to-llvm", "mlir::ModuleOp"> {
   let summary = "VAST to LLVM Dialect conversion";
   let description = [{
@@ -55,6 +63,20 @@ def CoreToLLVM : Pass<"vast-core-to-llvm", "mlir::ModuleOp"> {
   let constructor = "vast::createCoreToLLVMPass()";
   let dependentDialects = ["mlir::LLVM::LLVMDialect", "vast::ll::LowLevelDialect",
                            "vast::hl::HighLevelDialect"];
+}
+
+//
+// To CIR integration passes
+//
+
+def HLToCIR : Pass<"vast-hl-to-cir", "mlir::ModuleOp"> {
+  let summary = "VAST HL to CIR Dialect conversion";
+  let description = [{
+    Converts high level VAST operations to CIR dialect.
+  }];
+
+  let constructor = "vast::createHLToCIRPass()";
+  let dependentDialects = ["vast::hl::HighLevelDialect"];
 }
 
 #endif // VAST_CONVERSION_PASSES_TD

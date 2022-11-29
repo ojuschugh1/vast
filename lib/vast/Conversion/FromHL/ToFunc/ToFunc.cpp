@@ -10,8 +10,7 @@ VAST_RELAX_WARNINGS
 VAST_UNRELAX_WARNINGS
 
 #include "vast/Util/DialectConversion.hpp"
-
-#include "../PassesDetails.hpp"
+#include "../../PassesDetails.hpp"
 
 namespace vast
 {
