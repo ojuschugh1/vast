@@ -65,18 +65,4 @@ def CoreToLLVM : Pass<"vast-core-to-llvm", "mlir::ModuleOp"> {
                            "vast::hl::HighLevelDialect"];
 }
 
-//
-// To CIR integration passes
-//
-
-def HLToCIR : Pass<"vast-hl-to-cir", "mlir::ModuleOp"> {
-  let summary = "VAST HL to CIR Dialect conversion";
-  let description = [{
-    Converts high level VAST operations to CIR dialect.
-  }];
-
-  let constructor = "vast::createHLToCIRPass()";
-  let dependentDialects = ["vast::hl::HighLevelDialect", "mlir::cir::CIRDialect"];
-}
-
 #endif // VAST_CONVERSION_PASSES_TD

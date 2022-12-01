@@ -1,2 +1,5 @@
 add_subdirectory(ToFunc)
-add_subdirectory(ToCIR)
+
+if (ENABLE_CLANGIR)
+    add_subdirectory(ToCIR)
+endif()

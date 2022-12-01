@@ -1,4 +1,6 @@
-#include "vast/Conversion/Passes.hpp"
+// Copyright (c) 2022-present, Trail of Bits, Inc.
+
+#include "vast/Conversion/ToCIR/Passes.hpp"
 
 VAST_RELAX_WARNINGS
 #include <mlir/Transforms/DialectConversion.h>
@@ -11,9 +13,10 @@ VAST_UNRELAX_WARNINGS
 #include "vast/Conversion/Common/Passes.hpp"
 #include "vast/Conversion/Common/Patterns.hpp"
 
+#include "vast/Util/TypeList.hpp"
 #include "vast/Util/DialectConversion.hpp"
 
-#include "../../PassesDetails.hpp"
+#include "PassesDetails.hpp"
 
 namespace vast {
 

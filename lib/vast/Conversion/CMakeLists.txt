@@ -7,3 +7,9 @@ add_library( VASTConversions INTERFACE )
 add_dependencies( VASTConversions
     VASTConversionPassIncGen
 )
+
+if (ENABLE_CLANGIR)
+    add_dependencies( VASTConversions
+        VASTConversionToCIRPassIncGen
+    )
+endif()

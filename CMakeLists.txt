@@ -50,6 +50,48 @@ include(project_settings)
 include(project_utils)
 
 #
+# VAST build settings
+#
+
+add_library(vast_settings INTERFACE)
+
+include(cmake/compiler_warnings.cmake)
+set_project_warnings(vast_settings)
+
+target_include_directories(vast_settings INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+# sanitizer options if supported by compiler
+include(cmake/sanitizers.cmake)
+enable_sanitizers(vast_settings)
+
+# allow for static analysis options
+include(cmake/static_analyzers.cmake)
+
+option(ENABLE_PDLL_CONVERSIONS "Enable PDLL conversions" OFF)
+if (ENABLE_PDLL_CONVERSIONS)
+  message(STATUS "Enable PDLL conversions")
+  target_compile_definitions(vast_settings
+    INTERFACE
+      -DENABLE_PDLL_CONVERSIONS
+  )
+endif()
+
+option(ENABLE_CLANGIR "Enable CLANGIR" OFF)
+if (ENABLE_CLANGIR)
+  message(STATUS "Enable Clang IR")
+  target_compile_definitions(vast_settings
+    INTERFACE
+      -DENABLE_CLANGIR
+  )
+  set(LLVM_MINIMAL_VERSION 16)
+else()
+  set(LLVM_MINIMAL_VERSION 15)
+endif()
+
+#
 # CCACHE
 #
 find_program(CCACHE_PROGRAM ccache)
@@ -62,7 +104,7 @@ FindAndSelectClangCompiler()
 #
 # LLVM & MLIR & Clang
 #
-find_package(LLVM 16 REQUIRED CONFIG)
+find_package(LLVM ${LLVM_MINIMAL_VERSION} REQUIRED CONFIG)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
@@ -102,38 +144,8 @@ link_directories(${LLVM_BUILD_LIBRARY_DIR})
 add_definitions(${LLVM_DEFINITIONS})
 add_definitions(${CLANG_DEFINITIONS})
 
-#
-# VAST build settings
-#
-
-add_library(vast_settings INTERFACE)
-
-include(cmake/compiler_warnings.cmake)
-set_project_warnings(vast_settings)
-
-target_include_directories(vast_settings INTERFACE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
 if (NOT LLVM_ENABLE_RTTI)
   set_target_properties(vast_settings PROPERTIES COMPILE_FLAGS "-fno-rtti")
-endif()
-
-# sanitizer options if supported by compiler
-include(cmake/sanitizers.cmake)
-enable_sanitizers(vast_settings)
-
-# allow for static analysis options
-include(cmake/static_analyzers.cmake)
-
-option(ENABLE_PDLL_CONVERSIONS "Enable PDLL conversions" OFF)
-if (ENABLE_PDLL_CONVERSIONS)
-  message(STATUS "ENABLE_PDLL_CONVERSIONS")
-  target_compile_definitions(vast_settings
-    INTERFACE
-      -DENABLE_PDLL_CONVERSIONS
-  )
 endif()
 
 #

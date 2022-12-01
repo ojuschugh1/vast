@@ -20,8 +20,6 @@ VAST_UNRELAX_WARNINGS
 namespace vast
 {
     #ifdef ENABLE_PDLL_CONVERSIONS
-        constexpr bool enable_pdll_conversion_passes = true;
-
         namespace pdll
         {
             std::unique_ptr< mlir::Pass > createHLToFuncPass();
@@ -31,8 +29,6 @@ namespace vast
     std::unique_ptr< mlir::Pass > createCoreToLLVMPass();
 
     std::unique_ptr< mlir::Pass > createHLFuncToFuncPass();
-
-    std::unique_ptr< mlir::Pass > createHLToCIRPass();
 
     // Generate the code for registering passes.
     #define GEN_PASS_REGISTRATION

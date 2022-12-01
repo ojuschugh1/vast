@@ -129,3 +129,7 @@ mlir_tablegen(Passes.capi.h.inc -gen-pass-capi-header --prefix Conversion)
 mlir_tablegen(Passes.capi.cpp.inc -gen-pass-capi-impl --prefix Conversion)
 add_public_tablegen_target(VASTConversionPassIncGen)
 add_mlir_doc(Passes ConversionPasses ./ -gen-pass-doc)
+
+if (ENABLE_CLANGIR)
+    add_subdirectory(ToCIR)
+endif()

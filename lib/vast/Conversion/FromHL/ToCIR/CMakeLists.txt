@@ -4,10 +4,9 @@ add_mlir_conversion_library(VASTHLToCIR
     ToCIR.cpp
 
     DEPENDS
-        VASTConversionPassIncGen
+        VASTConversionToCIRPassIncGen
 
     LINK_LIBS PUBLIC
         MLIRHighLevel
         MLIRCIR
 )
-

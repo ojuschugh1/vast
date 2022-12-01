@@ -20,6 +20,10 @@ VAST_UNRELAX_WARNINGS
 
 #include "vast/Conversion/Passes.hpp"
 
+#ifdef ENABLE_CLANGIR
+    #include "vast/Conversion/ToCIR/Passes.hpp"
+#endif // ENABLE_CLANGIR
+
 #include "vast/Dialect/HighLevel/Passes.hpp"
 #include "vast/Conversion/Passes.hpp"
 #include "vast/Dialect/Dialects.hpp"
@@ -30,6 +34,10 @@ int main(int argc, char **argv)
     // Register VAST passes here
     vast::hl::registerPasses();
     vast::registerConversionPasses();
+
+#ifdef ENABLE_CLANGIR
+    vast::registerConversionToCIRPasses();
+#endif // ENABLE_CLANGIR
 
     mlir::DialectRegistry registry;
     // register dialects

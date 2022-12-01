@@ -17,4 +17,6 @@ add_mlir_conversion_library(VASTHLToFunc
         MLIRTargetLLVMIRExport
         MLIRLLVMToLLVMIRTranslation
         MLIRToLLVMIRTranslationRegistration
+
+        vast_settings
 )
