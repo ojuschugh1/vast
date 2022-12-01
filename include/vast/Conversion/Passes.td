@@ -76,7 +76,7 @@ def HLToCIR : Pass<"vast-hl-to-cir", "mlir::ModuleOp"> {
   }];
 
   let constructor = "vast::createHLToCIRPass()";
-  let dependentDialects = ["vast::hl::HighLevelDialect"];
+  let dependentDialects = ["vast::hl::HighLevelDialect", "mlir::cir::CIRDialect"];
 }
 
 #endif // VAST_CONVERSION_PASSES_TD

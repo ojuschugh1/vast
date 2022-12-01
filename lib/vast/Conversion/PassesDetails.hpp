@@ -13,6 +13,8 @@ VAST_RELAX_WARNINGS
 #include <mlir/Pass/Pass.h>
 VAST_UNRELAX_WARNINGS
 
+#include <clang/CIR/Dialect/IR/CIRDialect.h>
+
 #include "vast/Dialect/HighLevel/HighLevelDialect.hpp"
 #include "vast/Dialect/LowLevel/LowLevelDialect.hpp"
 
