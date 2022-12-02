@@ -12,6 +12,8 @@ namespace vast {
 
     using pattern_rewriter = mlir::PatternRewriter;
 
+    using conversion_rewriter = mlir::ConversionPatternRewriter;
+
     template< typename op_t >
     using operation_rewrite_pattern = mlir::OpRewritePattern< op_t >;
 
