@@ -40,6 +40,32 @@ namespace vast {
     };
 
     //
+    // function conversion
+    //
+    struct func_pattern : operation_conversion_pattern< hl::FuncOp > {
+        using base = operation_conversion_pattern< hl::FuncOp >;
+
+        using base::base;
+        using adaptor_t = typename hl::FuncOp::Adaptor;
+
+        logical_result matchAndRewrite(hl::FuncOp op, adaptor_t adaptor, conversion_rewriter &rewriter) const override {
+            // TODO deal with attributes and type conversions
+            // TODO convert or reuse cir linkage in FuncOp
+            auto linkage = mlir::cir::GlobalLinkageKind::ExternalLinkage;
+            auto fn = rewriter.create< mlir::cir::FuncOp >(op.getLoc(), op.getName(), op.getFunctionType(), linkage);
+            rewriter.inlineRegionBefore(op.getBody(), fn.getBody(), fn.end());
+            rewriter.eraseOp(op);
+            return logical_result::success();
+        }
+
+        static void legalize(conversion_target &target) {
+            target.addLegalOp< mlir::cir::FuncOp >();
+        }
+    };
+
+    using func_conversions = util::type_list< func_pattern >;
+
+    //
     // binary operations
     //
 
@@ -81,6 +107,9 @@ namespace vast {
 
         static void populate_conversions(rewrite_pattern_set &patterns) {
             base::populate_conversions<
+                /* function conversions */
+                func_conversions,
+                /* binary conversions */
                 arithmetic_conversions,
                 binary_conversions,
                 shift_conversions
