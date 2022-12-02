@@ -21,10 +21,11 @@ VAST_UNRELAX_WARNINGS
 namespace vast {
 
     template< typename source, mlir::cir::BinOpKind kind >
-    struct arith_pattern : operation_rewrite_pattern< source > {
-        using base = operation_rewrite_pattern< source >;
+    struct arith_pattern : operation_conversion_pattern< source > {
+        using base = operation_conversion_pattern< source >;
 
         using base::base;
+        using adaptor_t = typename source::Adaptor;
 
         logical_result matchAndRewrite(source op, adaptor_t adaptor, conversion_rewriter &rewriter) const override {
             rewriter.replaceOpWithNewOp< mlir::cir::BinOp >(op,
