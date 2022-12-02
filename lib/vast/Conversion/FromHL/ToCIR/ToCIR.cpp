@@ -36,6 +36,15 @@ namespace vast {
 
         static void legalize(conversion_target &target) {
             target.addLegalOp< mlir::cir::BinOp >();
+            target.addIllegalOp<
+                hl::AddIOp, hl::AddFOp,
+                hl::SubIOp, hl::SubFOp,
+                hl::MulIOp, hl::MulFOp,
+                hl::DivSOp, hl::DivUOp, hl::DivFOp,
+                hl::RemSOp, hl::RemUOp,  hl::RemUOp,
+                hl::BinXorOp, hl::BinOrOp, hl::BinAndOp,
+                hl::BinShlOp, hl::BinShrOp
+            >();
         }
     };
 
@@ -60,6 +69,7 @@ namespace vast {
 
         static void legalize(conversion_target &target) {
             target.addLegalOp< mlir::cir::FuncOp >();
+            target.addIllegalOp< hl::FuncOp >();
         }
     };
 
