@@ -20,7 +20,6 @@ VAST_UNRELAX_WARNINGS
 
 namespace vast {
 
-
     //
     // function conversion
     //
@@ -33,10 +32,15 @@ namespace vast {
         logical_result matchAndRewrite(hl::FuncOp op, adaptor_t adaptor, conversion_rewriter &rewriter) const override {
             // TODO deal with attributes and type conversions
             // TODO convert or reuse cir linkage in FuncOp
+            // TODO adapt clang codegen
             auto linkage = mlir::cir::GlobalLinkageKind::ExternalLinkage;
-            auto fn = rewriter.create< mlir::cir::FuncOp >(op.getLoc(), op.getName(), op.getFunctionType(), linkage);
+            auto fn = rewriter.create< mlir::cir::FuncOp >(
+                op.getLoc(), op.getName(), op.getFunctionType(), linkage
+            );
+
             rewriter.inlineRegionBefore(op.getBody(), fn.getBody(), fn.end());
             rewriter.eraseOp(op);
+
             return logical_result::success();
         }
 
@@ -47,6 +51,77 @@ namespace vast {
     };
 
     using func_conversions = util::type_list< func_pattern >;
+
+    //
+    // var conversion
+    //
+
+    template< typename source >
+    struct variable_conversion_pattern : operation_conversion_pattern< source > {
+
+        using base = operation_conversion_pattern< source >;
+
+        using base::base;
+        using adaptor_t = typename source::Adaptor;
+
+        // mlir_type to_pointer_type(mlir_type type) {
+        //     return
+        // }
+
+        logical_result matchAndRewrite(source op, adaptor_t adaptor, conversion_rewriter &rewriter) const override {
+            auto var_type = op.getType();
+            auto local_var_ptr_type = op.getType();
+
+            // TODO set alignment
+            auto align = base::i64(0);
+
+            rewriter.replaceOpWithNewOp< mlir::cir::AllocaOp >(op,
+                local_var_ptr_type, var_type, op.getName(), align
+            );
+
+            // TODO deal with initializer
+            return logical_result::success();
+        }
+    };
+
+    using var_conversions = util::type_list<
+        variable_conversion_pattern< hl::VarDeclOp >
+    >;
+
+    //
+    // cast operations
+    //
+    // template< typename source, mlir::cir::CastKind kind >
+    // struct cast_pattern : operation_conversion_pattern< source > {
+    //     using base = operation_conversion_pattern< source >;
+
+    //     using base::base;
+    //     using adaptor_t = typename source::Adaptor;
+
+    //     logical_result matchAndRewrite(source op, adaptor_t adaptor, conversion_rewriter &rewriter) const override {
+    //         rewriter.replaceOpWithNewOp< mlir::cir::CastOp >(op,
+    //             op.getType(), kind, adaptor.getLhs(), adaptor.getRhs()
+    //         );
+    //         return logical_result::success();
+    //     }
+
+    //     static void legalize(conversion_target &target) {
+    //         target.addLegalOp< mlir::cir::CastOp >();
+    //         // target.addIllegalOp<
+    //         //     hl::AddIOp, hl::AddFOp,
+    //         //     hl::SubIOp, hl::SubFOp,
+    //         //     hl::MulIOp, hl::MulFOp,
+    //         //     hl::DivSOp, hl::DivUOp, hl::DivFOp,
+    //         //     hl::RemSOp, hl::RemUOp,  hl::RemUOp,
+    //         //     hl::BinXorOp, hl::BinOrOp, hl::BinAndOp,
+    //         //     hl::BinShlOp, hl::BinShrOp
+    //         // >();
+    //     }
+    // };
+
+    // using cast_conversions = util::type_list<
+    //     cast_pattern< hl::ImplicitCastOp, mlir::cir::CastOp >
+    // >;
 
     //
     // binary operations
@@ -119,6 +194,10 @@ namespace vast {
             base::populate_conversions<
                 /* function conversions */
                 func_conversions,
+                /* decl operations */
+                var_conversions,
+                /* cast operations */
+                /* cast_conversions, */
                 /* binary conversions */
                 arithmetic_conversions,
                 binary_conversions,
