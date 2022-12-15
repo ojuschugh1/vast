@@ -19,8 +19,8 @@ namespace vast {
 
         using integer_attr_t = mlir::IntegerAttr;
 
-        derived_pattern& self() { return static_cast< derived_pattern& >(this); }
-        const derived_pattern& self() const { return static_cast< const derived_pattern& >(this); }
+        derived_pattern& self() { return static_cast< derived_pattern& >(*this); }
+        const derived_pattern& self() const { return static_cast< const derived_pattern& >(*this); }
 
         template< typename T >
         mlir_type bitwidth_type() const {

@@ -3,16 +3,20 @@
 #include "vast/Conversion/ToCIR/Passes.hpp"
 
 VAST_RELAX_WARNINGS
+#include <mlir/Analysis/DataLayoutAnalysis.h>
 #include <mlir/Transforms/DialectConversion.h>
 #include <mlir/Rewrite/FrozenRewritePatternSet.h>
 #include <mlir/Transforms/GreedyPatternRewriteDriver.h>
+#include <mlir/Conversion/LLVMCommon/TypeConverter.h>
 VAST_UNRELAX_WARNINGS
 
 #include <clang/CIR/Dialect/IR/CIRDialect.h>
 
 #include "vast/Conversion/Common/Passes.hpp"
 #include "vast/Conversion/Common/Patterns.hpp"
+#include "vast/Conversion/Common/TypeConverter.hpp"
 
+#include "vast/Util/Maybe.hpp"
 #include "vast/Util/TypeList.hpp"
 #include "vast/Util/DialectConversion.hpp"
 
@@ -184,13 +188,54 @@ namespace vast {
 
         using base = ModuleConversionPassMixin< HLToCIRPass, HLToCIRBase >;
 
+        using base::getContext;
+        using base::getOperation;
+        using base::getAnalysis;
+
+        //
+        // conversion target
+        //
         static conversion_target create_conversion_target(MContext &context) {
             conversion_target target(context);
             target.addLegalDialect< mlir::cir::CIRDialect >();
             return target;
         }
 
-        static void populate_conversions(rewrite_pattern_set &patterns) {
+        //
+        // type conversions
+        //
+
+        static inline auto keep_if_conversion = [] (auto pred) -> optional_type {
+            return [] (auto ty) {
+                // TODO why duplicit?
+                return maybe_type(ty).keep_if(pred).take_wrapped< optional_type >();
+            };
+        };
+
+        static inline auto keep_non_hl_type = keep_if_conversion(
+            [] (auto ty) { return !isHighLevelType(t); }
+        );
+
+        static inline auto lvalue_type_conversion = [] (hl::LValueType ty) -> maybe_type {
+            llvm::errs() << "convert type\n";
+            return maybe_type();
+        };
+
+        type_converter make_type_converter() {
+            type_converter tc;
+            tc.add_conversions(
+                keep_non_hl_type,
+                lvalue_type_conversion
+            );
+            return tc;
+        }
+
+        //
+        // conversion setup
+        //
+        void populate_conversions(rewrite_pattern_set &patterns) {
+            type_converter tc = make_type_converter();
+
             base::populate_conversions<
                 /* function conversions */
                 func_conversions,
@@ -202,7 +247,7 @@ namespace vast {
                 arithmetic_conversions,
                 binary_conversions,
                 shift_conversions
-            >(patterns);
+            >(patterns, tc);
         }
     };
 

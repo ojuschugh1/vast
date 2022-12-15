@@ -8,8 +8,7 @@ VAST_RELAX_WARNINGS
 #include "mlir/Transforms/DialectConversion.h"
 VAST_UNRELAX_WARNINGS
 
-#include <vast/Conversion/Common/Passes.hpp>
-
+#include "vast/Conversion/Common/TypeConverter.hpp"
 namespace vast {
 
     using conversion_target = mlir::ConversionTarget;
@@ -58,19 +57,19 @@ namespace vast {
 
         using rewrite_pattern_set = mlir::RewritePatternSet;
 
-        template< typename list >
-        static void populate_conversions_impl(rewrite_pattern_set &patterns) {
+        template< typename list, typename ...args_t>
+        static void populate_conversions_impl(rewrite_pattern_set &patterns, const args_t &...args) {
             if constexpr ( list::empty ) {
                 return;
             } else {
                 patterns.add< typename list::head >(patterns.getContext());
-                return populate_conversions< typename list::tail >(patterns);
+                return populate_conversions< typename list::tail >(patterns, args...);
             }
         }
 
-        template< typename ...lists  >
-        static void populate_conversions(rewrite_pattern_set &patterns) {
-            (populate_conversions_impl< lists >(patterns), ...);
+        template< typename ...lists, typename ...args_t >
+        static void populate_conversions(rewrite_pattern_set &patterns, const args_t &...args) {
+            (populate_conversions_impl< lists >(patterns, args...), ...);
         }
 
         void run_on_operation() {
@@ -79,14 +78,15 @@ namespace vast {
 
             // populate all patterns
             rewrite_pattern_set patterns(&ctx);
-            derived_t::populate_conversions(patterns);
+            this->populate_conversions(patterns);
 
             // run on operation
-            if (failed(applyPartialConversion(getOperation(), target, std::move(patterns))))
+            if (failed(applyPartialConversion(getOperation(), target, std::move(patterns)))) {
                 signalPassFailure();
+            }
         }
 
         // interface with pass base
         void runOnOperation() override { run_on_operation(); }
     };
-}
+} // namespace vast
