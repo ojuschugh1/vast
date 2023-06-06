@@ -529,7 +529,7 @@ namespace vast::cg
                 } ();
 
                 if (type->isVariablyModifiedType()) {
-                    VAST_UNIMPLEMENTED;
+                //  VAST_UNIMPLEMENTED;
                 }
             }
 
