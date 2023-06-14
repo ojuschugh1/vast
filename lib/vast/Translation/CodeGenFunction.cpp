@@ -85,10 +85,13 @@ namespace vast::cg
     hl::FuncOp codegen_driver::build_function_body(
         hl::FuncOp fn, clang::GlobalDecl decl, const function_info_t &fty_info
     ) {
+        llvm::errs() << "CodeGenFunction.hpp:build_function_body()\n";
         auto args = build_function_arg_list(decl);
+        llvm::errs() << "calling emit_function_prologue\n";
         fn = codegen.emit_function_prologue(
             fn, decl, fty_info, args, options
         );
+        llvm::errs() << "finished emit_function_prologue\n";
         auto function_decl = clang::cast< clang::FunctionDecl >( decl.getDecl() );
 
         if (mlir::failed(fn.verifyBody()))

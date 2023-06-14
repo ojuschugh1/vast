@@ -710,7 +710,10 @@ namespace vast::cg {
         // Operation* VisitIndirectGotoStmt(const clang::IndirectGotoStmt *stmt)
 
         Operation* VisitLabelStmt(const clang::LabelStmt *stmt) {
-            auto lab = visit(stmt->getDecl())->getResult(0);
+            stmt->getDecl()->dump();
+            auto tmp = visit(stmt->getDecl());
+            llvm::errs() << "label: " << *tmp << "\n";
+            auto lab = tmp->getResult(0);
             auto sub_builder = make_region_builder(stmt->getSubStmt());
             return make< hl::LabelStmt >(meta_location(stmt), lab, sub_builder);
         }

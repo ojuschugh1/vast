@@ -17,6 +17,7 @@ VAST_UNRELAX_WARNINGS
 #include "vast/Translation/CodeGenVisitorLens.hpp"
 #include "vast/Translation/CodeGenFunction.hpp"
 #include "vast/Translation/Mangler.hpp"
+#include "vast/Translation/ScopeContext.hpp"
 #include "vast/Translation/Util.hpp"
 
 #include "vast/Dialect/HighLevel/HighLevelLinkage.hpp"
@@ -282,6 +283,7 @@ namespace vast::cg {
 
         // Implelements buildGlobalFunctionDefinition of vast codegen
         operation build_function_prototype(clang::GlobalDecl decl, mlir_type fty) {
+            llvm::errs() << "CodeGenDeclVisitor.hpp:build_function_prototype()\n";
             // Get or create the prototype for the function.
             // TODO: Figure out what to do here? llvm uses a GlobalValue for the FuncOp in mlir
             return get_addr_of_function(decl, fty, deferred_emit_definition);
@@ -289,6 +291,8 @@ namespace vast::cg {
 
         // FIXME: remove as this duplicates logic from codegen driver
         operation VisitFunctionDecl(const clang::FunctionDecl *decl) {
+            llvm::errs() << "VisitFunctionDecl\n";
+            decl->dump();
             auto mangled = context().get_mangled_name(decl);
 
             if (auto fn = context().lookup_function(mangled, false /* emit no error */)) {
@@ -297,6 +301,7 @@ namespace vast::cg {
 
             InsertionGuard guard(builder());
             auto is_definition = decl->doesThisDeclarationHaveABody();
+            auto blk_scope = block_scope(&context());
 
             // emit definition instead of declaration
             if (!is_definition && decl->getDefinition()) {
@@ -342,7 +347,8 @@ namespace vast::cg {
                     declare_function_params(entry);
 
                     // emit label declarations
-                    llvm::ScopedHashTableScope labels_scope(context().labels);
+                    auto scope = function_scope(&context());
+                    //llvm::ScopedHashTableScope labels_scope(context().labels);
 
                     filter< clang::LabelDecl >(decl->decls(), [this] (auto lab) {
                         this->visit(lab);
@@ -363,7 +369,7 @@ namespace vast::cg {
                 }
             };
 
-            llvm::ScopedHashTableScope scope(context().vars);
+            //llvm::ScopedHashTableScope scope(context().vars);
 
             auto linkage = hl::get_function_linkage(decl);
 

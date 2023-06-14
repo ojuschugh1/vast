@@ -251,7 +251,9 @@ namespace vast::cg
     }
 
     operation codegen_driver::build_global_function_definition(clang::GlobalDecl decl) {
+        llvm::errs() << "CodeGenDriver.cpp:build_global_function_definition()\n";
         auto const *function_decl = llvm::cast< clang::FunctionDecl >(decl.getDecl());
+        function_decl->dump();
 
         // Compute the function info and vast type.
         const auto &fty_info = type_info->arrange_global_decl(decl, get_target_info());
@@ -259,6 +261,7 @@ namespace vast::cg
 
         VAST_UNIMPLEMENTED_IF(lang().CUDA);
         auto op = codegen.build_function_prototype(decl, ty);
+        llvm::errs() << "finished CodeGenDriver.cpp:build_function_prototype()\n";
 
         auto fn = mlir::cast< vast::hl::FuncOp >(op);
         // Already emitted.

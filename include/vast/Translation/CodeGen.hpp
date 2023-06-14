@@ -29,6 +29,7 @@ VAST_UNRELAX_WARNINGS
 #include "vast/Translation/DataLayout.hpp"
 #include "vast/Translation/CodeGenMeta.hpp"
 #include "vast/Translation/CodeGenOptions.hpp"
+#include "vast/Translation/ScopeContext.hpp"
 #include "vast/Translation/Types.hpp"
 
 namespace vast::cg
@@ -95,18 +96,18 @@ namespace vast::cg
             return _visitor->build_function_prototype(decl, fty);
         }
 
-        template< typename From, typename Symbol >
-        using ScopedSymbolTable = llvm::ScopedHashTableScope< From, Symbol >;
+        //template< typename From, typename Symbol >
+        //using ScopedSymbolTable = llvm::ScopedHashTableScope< From, Symbol >;
 
-        using TypeDefsScope      = ScopedSymbolTable< const clang::TypedefDecl *, hl::TypeDefOp >;
-        using TypeDeclsScope     = ScopedSymbolTable< const clang::TypeDecl *, hl::TypeDeclOp >;
-        using EnumDeclsScope     = ScopedSymbolTable< const clang::EnumDecl *, hl::EnumDeclOp >;
-        using EnumConstantsScope = ScopedSymbolTable< const clang::EnumConstantDecl *, hl::EnumConstantOp >;
-        using LabelTable         = ScopedSymbolTable< const clang::LabelDecl*, hl::LabelDeclOp >;
-        using FunctionsScope     = ScopedSymbolTable< mangled_name_ref, hl::FuncOp >;
-        using VariablesScope     = ScopedSymbolTable< const clang::VarDecl *, Value >;
+        //using TypeDefsScope      = ScopedSymbolTable< const clang::TypedefDecl *, hl::TypeDefOp >;
+        //using TypeDeclsScope     = ScopedSymbolTable< const clang::TypeDecl *, hl::TypeDeclOp >;
+        //using EnumDeclsScope     = ScopedSymbolTable< const clang::EnumDecl *, hl::EnumDeclOp >;
+        //using EnumConstantsScope = ScopedSymbolTable< const clang::EnumConstantDecl *, hl::EnumConstantOp >;
+        //using LabelTable         = ScopedSymbolTable< const clang::LabelDecl*, hl::LabelDeclOp >;
+        //using FunctionsScope     = ScopedSymbolTable< mangled_name_ref, hl::FuncOp >;
+        //using VariablesScope     = ScopedSymbolTable< const clang::VarDecl *, Value >;
 
-        struct CodegenScope {
+        /*struct CodegenScope {
             TypeDefsScope      typedefs;
             TypeDeclsScope     typedecls;
             EnumDeclsScope     enumdecls;
@@ -114,7 +115,7 @@ namespace vast::cg
             LabelTable         labels;
             FunctionsScope     funcdecls;
             VariablesScope     globs;
-        };
+        };*/
 
         bool verify_module() const {
             return mlir::verify(_module.get()).succeeded();
@@ -184,6 +185,7 @@ namespace vast::cg
             hl::FuncOp fn, clang::GlobalDecl decl,  const function_info_t &fty_info,
             function_arg_list args, const codegen_options &options
         ) {
+            llvm::errs() << "Codegen.hpp:emit_function_prologue()\n";
             VAST_CHECK(fn, "generating code for a null function");
             const auto function_decl = clang::cast< clang::FunctionDecl >(decl.getDecl());
 
@@ -254,7 +256,8 @@ namespace vast::cg
             }
 
             // Create a scope in the symbol table to hold variable declarations.
-            llvm::ScopedHashTableScope var_scope(variables_symbol_table());
+            //llvm::ScopedHashTableScope var_scope(variables_symbol_table());
+            auto blk = block_scope(_cgctx.get());
             {
                 auto body = function_decl->getBody();
                 auto begin_loc = meta_location(body);
@@ -506,10 +509,12 @@ namespace vast::cg
         }
 
         logical_result build_function_body(const clang::Stmt *body) {
+            llvm::errs() << "CodeGen.hpp:build_function_body()\n";
             // TODO: incrementProfileCounter(Body);
 
             // We start with function level scope for variables.
-            llvm::ScopedHashTableScope var_scope(variables_symbol_table());
+            //llvm::ScopedHashTableScope var_scope(variables_symbol_table());
+            auto fun_scope = function_scope(_cgctx.get());
 
             auto result = logical_result::success();
             if (const auto stmt = clang::dyn_cast< clang::CompoundStmt >(body)) {
@@ -610,15 +615,7 @@ namespace vast::cg
 
             _cgctx = std::make_unique< CodeGenContext >(*_mctx, actx, _module);
 
-            _scope = std::unique_ptr< CodegenScope >( new CodegenScope{
-                .typedefs   = _cgctx->typedefs,
-                .typedecls  = _cgctx->typedecls,
-                .enumdecls  = _cgctx->enumdecls,
-                .enumconsts = _cgctx->enumconsts,
-                .labels     = _cgctx->labels,
-                .funcdecls  = _cgctx->funcdecls,
-                .globs      = _cgctx->vars
-            });
+            _scope = std::unique_ptr< module_scope >(std::make_unique< module_scope >(_cgctx.get()));
 
             _visitor = std::make_unique< CodeGenVisitor >(*_cgctx, _meta);
         }
@@ -646,7 +643,7 @@ namespace vast::cg
         MetaGenerator &_meta;
 
         std::unique_ptr< CodeGenContext > _cgctx;
-        std::unique_ptr< CodegenScope >   _scope;
+        std::unique_ptr< module_scope >   _scope;
         std::unique_ptr< CodeGenVisitor > _visitor;
 
         owning_module_ref _module;

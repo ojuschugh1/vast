@@ -8,6 +8,7 @@ add_library( vast_translation_api STATIC
   CodeGenTypeDriver.cpp
   CodeGenFunction.cpp
   Mangler.cpp
+  ScopeContext.cpp
 )
 
 target_link_libraries( vast_translation_api
