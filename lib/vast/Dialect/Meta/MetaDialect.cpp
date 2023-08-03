@@ -17,8 +17,6 @@ namespace vast::meta
         >();
     }
 
-    static constexpr std::string_view identifier_name = "meta_identifier";
-
     void add_identifier(mlir::Operation *op, identifier_t id) {
         auto ctx = op->getContext();
         auto attr = IdentifierAttr::get(ctx, id);

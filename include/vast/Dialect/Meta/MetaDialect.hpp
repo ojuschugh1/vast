@@ -20,6 +20,8 @@ namespace vast::meta
 {
     using identifier_t = std::uint64_t;
 
+    static constexpr std::string_view identifier_name = "meta_identifier";
+
     void add_identifier(mlir::Operation *op, identifier_t id);
 
     void remove_identifier(mlir::Operation *op);
