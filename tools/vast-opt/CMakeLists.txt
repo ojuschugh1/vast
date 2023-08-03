@@ -14,6 +14,7 @@ target_link_libraries(vast-opt
 
         vast::high_level::transforms
         vast::conversion::all
+        vast::analysis
 
         MLIROptLib
         MLIRHighLevel
