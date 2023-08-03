@@ -6,4 +6,5 @@ add_library(vast_analysis
 
 target_link_libraries(vast_analysis PRIVATE vast::settings)
 
+add_dependencies(vast_analysis VASTAnalysisPassIncGen)
 add_library(vast::analysis ALIAS vast_analysis)

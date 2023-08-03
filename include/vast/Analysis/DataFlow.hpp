@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "vast/Util/Warnings.hpp"
+
+VAST_RELAX_WARNINGS
+#include <mlir/Analysis/DataFlow/SparseAnalysis.h>
+VAST_UNRELAX_WARNINGS
+
 #include <algorithm>
 #include <set>
 
@@ -11,90 +17,59 @@
 
 namespace vast::dfa {
 
-    static constexpr std::string_view identifier_name = "taints";
+    struct taints_value {
+        using taints = std::set< meta::identifier_t >;
 
-    struct any_taint {};
+        taints_value() = default;
 
-    using taints_set = std::set< meta::identifier_t >;
+        taints_value(const taints &set) : value(set) {}
 
-    using taint_type = std::variant< taints_set, any_taint >;
+        taints_value(taints &&set) : value(std::move(set)) {}
 
-    bool operator==(const taint_type &lhs, const taint_type &rhs) {
-        if (std::holds_alternative< any_taint >(lhs) &&
-            std::holds_alternative< any_taint >(rhs))
-        {
-            return true;
-        }
-
-        const auto *lhs_set = std::get_if< taints_set >(&lhs);
-        const auto *rhs_set = std::get_if< taints_set >(&rhs);
-        if (lhs_set && rhs_set) {
-            return *lhs_set == *rhs_set;
-        }
-        return false;
-    }
-
-    struct taint_lattice_value {
-        taint_lattice_value() = default;
-
-        taint_lattice_value(any_taint value) : taints(value) {}
-
-        taint_lattice_value(const taints_set &set) : taints(set) {}
-
-        taint_lattice_value(taints_set &&set) : taints(std::move(set)) {}
-
-        taint_lattice_value(mlir::DictionaryAttr attr) {
+        taints_value(mlir::DictionaryAttr attr) {
             if (auto id = attr.get(meta::identifier_name)) {
-                taints = taints_set{ attr.cast< meta::IdentifierAttr >().getValue() };
+                value.insert(attr.cast< meta::IdentifierAttr >().getValue());
             }
         }
 
-        static taint_lattice_value top() { return { any_taint() }; }
+        void print(llvm::raw_ostream &os) const;
 
-        static taint_lattice_value bottom() { return { taints_set() }; }
-
-        bool is_top() const { return std::holds_alternative< any_taint >(taints); }
-
-        bool is_bottom() const {
-            if (auto set = std::get_if< taints_set >(&taints)) {
-                return set->empty();
-            }
-            return false;
-        }
-
-        static auto getPessimisticValueState(mcontext_t *) -> taint_lattice_value {
-            return top();
-        }
-
-        static auto getPessimisticValueState(mlir_value value) -> taint_lattice_value {
-            if (auto parent = value.getDefiningOp()) {
-                if (auto attr = parent->getAttrOfType< mlir::DictionaryAttr >("taints")) {
-                    return taint_lattice_value(attr);
-                }
-            }
-            return top();
-        }
-
-        static auto join(const taint_lattice_value &lhs, const taint_lattice_value &rhs)
-            -> taint_lattice_value
-        {
-            if (lhs.is_top() || rhs.is_top()) {
-                return top();
-            }
-
-            taints_set result;
-            const auto &lhs_set = std::get< taints_set >(lhs.taints);
-            const auto &rhs_set = std::get< taints_set >(rhs.taints);
-            std::ranges::set_union(lhs_set, rhs_set, std::inserter(result, result.begin()));
+        static auto join(const taints_value &lhs, const taints_value &rhs) -> taints_value {
+            taints result;
+            std::ranges::set_union(lhs.value, rhs.value, std::inserter(result, result.begin()));
             return result;
         }
 
-        bool operator==(const taint_lattice_value &other) const {
-            return taints == other.taints;
-        }
+        bool operator==(const taints_value &other) const = default;
 
       private:
-        taint_type taints = taints_set();
+        taints value;
+    };
+
+    template< typename T >
+    using lattice = mlir::dataflow::Lattice< T >;
+
+    using dataflow_solver = mlir::DataFlowSolver;
+
+    struct taints_lattice : lattice< taints_value > {
+        using lattice< taints_value >::Lattice;
+
+        void onUpdate(dataflow_solver *solver) const override;
+    };
+
+    template< typename lat >
+    using sparse_analysis = mlir::dataflow::SparseDataFlowAnalysis< lat >;
+
+    struct taints_analysis : sparse_analysis< taints_lattice > {
+        using base = sparse_analysis< taints_lattice >;
+        using base::base;
+
+        using operands_taints = mlir::ArrayRef< const taints_lattice * >;
+        using result_taints   = mlir::ArrayRef< taints_lattice * >;
+
+        void visitOperation(operation op, operands_taints ops, result_taints res) override;
+
+        void setToEntryState(taints_lattice *lattice) override;
     };
 
 } // namespace vast::dfa
