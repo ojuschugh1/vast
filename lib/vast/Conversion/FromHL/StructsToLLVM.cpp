@@ -77,8 +77,12 @@ namespace vast
 
             mlir::LogicalResult convert()
             {
-                auto llvm_struct = convert_struct_type();
-                rewriter.create< hl::TypeDefOp >(op.getLoc(), op.getName(), llvm_struct);
+                // Before, we emitted `hl.typedef` however this should no longer be
+                // required, as there is no usage for it.
+                // If we ever need it again, consider using a `core::` or `ll::` dialects
+                // instead, to provide a clear indication that this alias is an artifact
+                // of lowering and not an AST property.
+                std::ignore = convert_struct_type();
                 // TODO(conv:hl-structs-to-llvm): Investigate if this is still required.
                 conv::rewriter_wrapper_t(rewriter).safe_erase(hl::type_decls(op));
 
