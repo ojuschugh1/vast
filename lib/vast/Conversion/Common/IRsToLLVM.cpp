@@ -746,9 +746,6 @@ namespace vast::conv::irstollvm
                 //              there will be a LValueToRValue cast on rvalue from
                 //              `(x = 5)` - not sure why that is so, so just fail
                 //              gracefully for now.
-                if (!op.getOperand().getType().isa< hl::LValueType >())
-                    return logical_result::failure();
-
                 auto loaded = rewriter.create< LLVM::LoadOp >(op.getLoc(),
                                                               *trg_type,
                                                               ops.getOperands()[0]);
