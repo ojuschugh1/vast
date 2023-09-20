@@ -18,7 +18,7 @@ namespace vast::repl::codegen {
     }
 
     std::unique_ptr< clang::ASTUnit > ast_from_source(const std::string &source) {
-        return clang::tooling::buildASTFromCode(source);
+        return clang::tooling::buildASTFromCodeWithArgs(source, { "-xc" });
     }
 
     std::string get_source(std::filesystem::path source) {
