@@ -79,8 +79,22 @@ def HLLowerTypes : Pass<"vast-hl-lower-types", "mlir::ModuleOp"> {
   let constructor = "vast::hl::createHLLowerTypesPass()";
 }
 
+def Desugar : Pass<"vast-hl-desugar", "mlir::ModuleOp"> {
+  let summary = "Desugar high-level types.";
+  let description = [{
+    Rewrites high-level types into desugared form.
+  }];
+
+  let dependentDialects = [
+    "vast::hl::HighLevelDialect",
+    "vast::core::CoreDialect"
+  ];
+
+  let constructor = "vast::hl::createDesugarPass()";
+}
+
 def ResolveTypeDefs : Pass<"vast-hl-resolve-typedefs", "mlir::ModuleOp"> {
-  let summary = "Remove `hl::TypeDef type from types.";
+  let summary = "Remove `hl::TypeDef` type from types.";
   let description = [{
     Resolve typedefs types - this is usefull for more low-level analysis
     or transformations.
