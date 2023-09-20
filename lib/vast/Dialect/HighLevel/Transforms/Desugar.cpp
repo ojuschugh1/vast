@@ -141,7 +141,6 @@ namespace vast::hl {
                     replacer.addReplacement(tc::convert_type_attr(tc));
                     replacer.addReplacement(convert_high_level_typed_attr());
                     replacer.recursivelyReplaceElementsIn(op, true /* replace attrs */);
-                    op->dump();
                 };
 
                 rewriter.updateRootInPlace(op, do_change);
