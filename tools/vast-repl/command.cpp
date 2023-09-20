@@ -135,7 +135,7 @@ namespace vast::repl::cmd {
         auto th = state.tower->top();
         for (auto pass : passes) {
             if (mlir::failed(mlir::parsePassPipeline(pass, pm))) {
-                VAST_UNREACHABLE("error: failed to parse pass pipeline");
+                return;
             }
             th = state.tower->apply(th, pm);
         }
