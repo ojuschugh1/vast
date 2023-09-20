@@ -4,6 +4,7 @@
 
 #include "vast/Tower/Tower.hpp"
 #include "vast/repl/common.hpp"
+#include "vast/repl/command_base.hpp"
 
 namespace vast::repl {
 
@@ -16,6 +17,8 @@ namespace vast::repl {
 
         mcontext_t &ctx;
         std::optional< tw::default_tower > tower;
+
+        std::vector< command_ptr > sticked;
     };
 
 } // namespace vast::repl
