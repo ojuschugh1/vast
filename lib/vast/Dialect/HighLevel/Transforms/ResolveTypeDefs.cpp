@@ -61,8 +61,8 @@ namespace vast::hl {
                 maybe_type_t convert(mlir_type type) { return nested_type(type); }
 
                 maybe_type_t convert(mlir::SubElementTypeInterface with_subelements) {
-                    auto replacer = [&](hl::ElaboratedType elaborated) {
-                        return nested_type(elaborated);
+                    auto replacer = [&](mlir_type type) {
+                        return nested_type(type);
                     };
                     return with_subelements.replaceSubElements(replacer);
                 }
