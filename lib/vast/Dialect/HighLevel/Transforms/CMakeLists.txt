@@ -6,7 +6,7 @@ add_vast_conversion_library(HighLevelTransforms
   LLVMDump.cpp
   DCE.cpp
   Desugar.cpp
-  ResolveTypeDefs.cpp
+  LowerTypeDefs.cpp
   SpliceTrailingScopes.cpp
 )
 

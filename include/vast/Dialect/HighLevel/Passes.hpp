@@ -24,7 +24,7 @@ namespace vast::hl
 
     std::unique_ptr< mlir::Pass > createDesugarPass();
 
-    std::unique_ptr< mlir::Pass > createResolveTypeDefsPass();
+    std::unique_ptr< mlir::Pass > createLowerTypeDefsPass();
 
     std::unique_ptr< mlir::Pass > createSpliceTrailingScopes();
 

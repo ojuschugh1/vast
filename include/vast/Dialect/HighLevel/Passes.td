@@ -93,7 +93,7 @@ def Desugar : Pass<"vast-hl-desugar", "mlir::ModuleOp"> {
   let constructor = "vast::hl::createDesugarPass()";
 }
 
-def ResolveTypeDefs : Pass<"vast-hl-resolve-typedefs", "mlir::ModuleOp"> {
+def LowerTypeDefs : Pass<"vast-hl-lower-typedefs", "mlir::ModuleOp"> {
   let summary = "Remove `hl::TypeDef` type from types.";
   let description = [{
     Resolve typedefs types - this is usefull for more low-level analysis
@@ -105,7 +105,7 @@ def ResolveTypeDefs : Pass<"vast-hl-resolve-typedefs", "mlir::ModuleOp"> {
     "vast::core::CoreDialect"
   ];
 
-  let constructor = "vast::hl::createResolveTypeDefsPass()";
+  let constructor = "vast::hl::createLowerTypeDefsPass()";
 }
 
 def SpliceTrailingScopes : Pass<"vast-hl-splice-trailing-scopes", "mlir::ModuleOp"> {

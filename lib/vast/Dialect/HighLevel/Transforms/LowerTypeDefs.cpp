@@ -147,9 +147,9 @@ namespace vast::hl {
         } // namespace pattern
     } // namespace
 
-    struct ResolveTypeDefs : ModuleConversionPassMixin< ResolveTypeDefs, ResolveTypeDefsBase >
+    struct LowerTypeDefs : ModuleConversionPassMixin< LowerTypeDefs, LowerTypeDefsBase >
     {
-        using base     = ModuleConversionPassMixin< ResolveTypeDefs, ResolveTypeDefsBase >;
+        using base     = ModuleConversionPassMixin< LowerTypeDefs, LowerTypeDefsBase >;
         using config_t = typename base::config_t;
 
         static auto create_conversion_target(mcontext_t &mctx) {
@@ -181,6 +181,6 @@ namespace vast::hl {
 
 } // namespace vast::hl
 
-std::unique_ptr< mlir::Pass > vast::hl::createResolveTypeDefsPass() {
-    return std::make_unique< vast::hl::ResolveTypeDefs >();
+std::unique_ptr< mlir::Pass > vast::hl::createLowerTypeDefsPass() {
+    return std::make_unique< vast::hl::LowerTypeDefs >();
 }

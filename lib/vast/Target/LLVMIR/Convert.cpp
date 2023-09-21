@@ -87,7 +87,7 @@ namespace vast::target::llvmir
         pm.addPass(hl::createHLLowerTypesPass());
         pm.addPass(hl::createDCEPass());
         pm.addPass(hl::createDesugarPass());
-        pm.addPass(hl::createResolveTypeDefsPass());
+        pm.addPass(hl::createLowerTypeDefsPass());
         pm.addPass(createHLToLLFuncPass());
         pm.addPass(createHLToLLVarsPass());
         pm.addPass(createHLToLLCFPass());
