@@ -78,6 +78,16 @@ namespace cmd {
         });
     }
 
+    void show_snaps(state_t &state) {
+        if (state.snaps.empty()) {
+            llvm::outs() << "error: no tower snapshots\n";
+        }
+
+        for (const auto &[name, _] : state.snaps) {
+            llvm::outs() << name << "\n";
+        }
+    }
+
     void show::run(state_t &state) const {
         if (!state.source.has_value()) {
             return;
@@ -89,6 +99,7 @@ namespace cmd {
             case show_kind::ast:     return show_ast(state);
             case show_kind::module:  return show_module(state);
             case show_kind::symbols: return show_symbols(state);
+            case show_kind::snaps:   return show_snaps(state);
         }
     };
 
@@ -153,6 +164,16 @@ namespace cmd {
         auto cmd = get_param< command_param >(params);
         auto tokens = parse_tokens(cmd.value);
         state.sticked.push_back(parse_command(tokens));
+    }
+
+    //
+    // snap command
+    //
+    void snap::run(state_t &state) const {
+        auto name = get_param< name_param >(params);
+        if (state.tower) {
+            state.snaps[name.value] = state.tower->top();
+        }
     }
 
 } // namespace cmd

@@ -44,7 +44,7 @@ namespace vast::repl
         struct string_param  { std::string value; };
         struct integer_param { std::uint64_t value; };
 
-        enum class show_kind { source, ast, module, symbols };
+        enum class show_kind { source, ast, module, symbols, snaps };
 
         template< typename enum_type >
         enum_type from_string(string_ref token) requires(std::is_same_v< enum_type, show_kind >) {
@@ -52,6 +52,7 @@ namespace vast::repl
             if (token == "ast")     return enum_type::ast;
             if (token == "module")  return enum_type::module;
             if (token == "symbols") return enum_type::symbols;
+            if (token == "snaps")   return enum_type::snaps;
             VAST_UNREACHABLE("uknnown show kind: {0}", token.str());
         }
 
@@ -244,6 +245,28 @@ namespace vast::repl
 
             sticky(const params_storage &params) : params(params) {}
             sticky(params_storage &&params) : params(std::move(params)) {}
+
+            void run(state_t &state) const override;
+
+            params_storage params;
+        };
+
+        //
+        // snap command
+        //
+        struct snap : base {
+            static constexpr string_ref name() { return "snap"; }
+
+            static constexpr inline char name_param[] = "snapshot_name";
+
+            using command_params = util::type_list<
+                named_param< name_param, string_param >
+            >;
+
+            using params_storage = command_params::as_tuple;
+
+            snap(const params_storage &params) : params(params) {}
+            snap(params_storage &&params) : params(std::move(params)) {}
 
             void run(state_t &state) const override;
 

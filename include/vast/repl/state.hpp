@@ -6,6 +6,8 @@
 #include "vast/repl/common.hpp"
 #include "vast/repl/command_base.hpp"
 
+#include <llvm/ADT/StringMap.h>
+
 namespace vast::repl {
 
     struct state_t {
@@ -19,6 +21,8 @@ namespace vast::repl {
         std::optional< tw::default_tower > tower;
 
         std::vector< command_ptr > sticked;
+
+        llvm::StringMap< tw::default_tower::handle_t > snaps;
     };
 
 } // namespace vast::repl
