@@ -1245,6 +1245,26 @@ namespace vast::conv::irstollvm
         }
     };
 
+    struct addressof : base_pattern< hl::AddressOf >
+    {
+        using op_t = hl::AddressOf;
+        using base = base_pattern< op_t >;
+        using base::base;
+
+        using adaptor_t = typename op_t::Adaptor;
+
+        logical_result matchAndRewrite(
+            op_t op, adaptor_t ops,
+            conversion_rewriter &rewriter
+        ) const override {
+            // mlir::Value VisitUnaryAddrOf(const UnaryOperator *E) {
+            //     return CGF.buildLValue(E->getSubExpr()).getPointer();
+            // }
+            rewriter.replaceOp(op, {ops.getValue()});
+            return logical_result::success();
+        }
+    };
+
     using base_op_conversions = util::type_list<
         func_op< hl::FuncOp >,
         func_op< ll::FuncOp >,
@@ -1257,7 +1277,8 @@ namespace vast::conv::irstollvm
         subscript,
         sizeof_pattern,
         propagate_yield< hl::ExprOp, hl::ValueYieldOp >,
-        value_yield_in_global_var
+        value_yield_in_global_var,
+        addressof
     >;
 
     // Drop types of operations that will be processed by pass for core(lazy) operations.
