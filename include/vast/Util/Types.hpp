@@ -12,6 +12,7 @@ VAST_UNRELAX_WARNINGS
 #include "vast/Util/Common.hpp"
 
 #include <limits>
+#include <optional>
 
 namespace vast
 {
@@ -20,6 +21,17 @@ namespace vast
     concept invocable = requires(F &&f, Args &&...args) {
         std::invoke(std::forward< F >(f), std::forward< Args >(args)...);
     };
+
+    template< template< typename... > typename Template, typename... Args >
+    void derived_from_specialization_impl(const Template< Args... > &);
+
+    template< typename T, template< typename... > typename Template >
+    concept derived_from_specialization_of = requires(const T &t) {
+        derived_from_specialization_impl< Template >(t);
+    };
+
+    template< typename T >
+    concept is_optional = derived_from_specialization_of< T, std::optional >;
 
     // TODO(Heno): use integral concepts
     template< typename I >
