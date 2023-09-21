@@ -44,7 +44,7 @@ namespace vast::repl
         struct string_param  { std::string value; };
         struct integer_param { std::uint64_t value; };
 
-        enum class show_kind { source, ast, module, symbols, snaps };
+        enum class show_kind { source, ast, module, symbols, snaps, pipelines };
 
         template< typename enum_type >
         enum_type from_string(string_ref token) requires(std::is_same_v< enum_type, show_kind >) {
@@ -53,6 +53,7 @@ namespace vast::repl
             if (token == "module")  return enum_type::module;
             if (token == "symbols") return enum_type::symbols;
             if (token == "snaps")   return enum_type::snaps;
+            if (token == "pipelines")   return enum_type::pipelines;
             VAST_UNREACHABLE("uknnown show kind: {0}", token.str());
         }
 
@@ -250,6 +251,8 @@ namespace vast::repl
 
             params_storage params;
         };
+
+        void add_sticky_command(string_ref cmd, state_t &state);
 
         //
         // snap command
