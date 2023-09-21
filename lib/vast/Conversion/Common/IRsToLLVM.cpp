@@ -1221,6 +1221,23 @@ namespace vast::conv::irstollvm
         }
     };
 
+    struct typedef_pattern : base_pattern< hl::TypeDefOp >
+    {
+        using op_t = hl::TypeDefOp;
+        using base = base_pattern< op_t >;
+        using base::base;
+
+        using adaptor_t = typename op_t::Adaptor;
+
+        logical_result matchAndRewrite(
+            op_t op, adaptor_t ops,
+            conversion_rewriter &rewriter
+        ) const override {
+            rewriter.eraseOp(op);
+            return logical_result::success();
+        }
+    };
+
     struct sizeof_pattern : base_pattern< hl::SizeOfTypeOp >
     {
         using op_t = hl::SizeOfTypeOp;
@@ -1257,9 +1274,6 @@ namespace vast::conv::irstollvm
             op_t op, adaptor_t ops,
             conversion_rewriter &rewriter
         ) const override {
-            // mlir::Value VisitUnaryAddrOf(const UnaryOperator *E) {
-            //     return CGF.buildLValue(E->getSubExpr()).getPointer();
-            // }
             rewriter.replaceOp(op, {ops.getValue()});
             return logical_result::success();
         }
@@ -1276,6 +1290,7 @@ namespace vast::conv::irstollvm
         deref,
         subscript,
         sizeof_pattern,
+        typedef_pattern,
         propagate_yield< hl::ExprOp, hl::ValueYieldOp >,
         value_yield_in_global_var,
         addressof
@@ -1359,7 +1374,7 @@ namespace vast::conv::irstollvm
             target.addIllegalDialect< ll::LowLevelDialect >();
             target.addLegalDialect< core::CoreDialect >();
 
-            target.addLegalOp< hl::TypeDefOp >();
+            target.addIllegalOp< hl::TypeDefOp >();
 
             auto illegal_with_llvm_ret_type = [&]< typename T >( T && )
             {
