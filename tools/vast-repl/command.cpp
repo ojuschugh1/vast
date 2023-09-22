@@ -273,10 +273,17 @@ namespace cmd {
     void inspect::run(state_t &state) const {
         auto layer_name = get_param< layer_param >(params);
         auto location = get_param< location_param >(params);
+    }
 
-        // layer.mod.walk([] (operation op) {
-        //     llvm::errs() << op->getLoc() << "\n";
-        // });
+    void snapshot::run(state_t &state) const {
+        auto snapshot_name = get_param< name_param >(params);
+        auto locations = get_param< locations_param >(params);
+
+        mlir::OpPrintingFlags flags;
+        if (locations.set) {
+            flags.enableDebugInfo();
+        }
+        state.tower.snaps[snapshot_name.value].print(llvm::outs(), flags);
     }
 
 } // namespace cmd

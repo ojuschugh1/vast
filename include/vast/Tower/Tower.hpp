@@ -64,6 +64,7 @@ namespace vast::tw {
                 VAST_UNREACHABLE("error: failed to parse pipeline");
             }
 
+            layers.push_back(last_module().clone());
             if (mlir::failed(pm.run(last_module()))) {
                 VAST_UNREACHABLE("error: pass {} failed", pass_name);
             }

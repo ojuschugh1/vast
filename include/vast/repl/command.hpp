@@ -324,8 +324,33 @@ namespace vast::repl
             params_storage params;
         };
 
+        //
+        // snapshot command
+        //
+        struct snapshot : base {
+            static constexpr string_ref name() { return "snapshot"; }
+
+            static constexpr inline char name_param[] = "snapshot_name";
+            static constexpr inline char locations_param[] = "locations";
+
+            using command_params =
+                util::type_list<
+                    named_param< name_param, string_param >,
+                    named_param< locations_param, flag_param >
+                >;
+
+            using params_storage = command_params::as_tuple;
+
+            snapshot(const params_storage &params) : params(params) {}
+            snapshot(params_storage &&params) : params(std::move(params)) {}
+
+            void run(state_t &state) const override;
+
+            params_storage params;
+        };
+
         using command_list = util::type_list<
-            exit, help, load, show, meta, raise, sticky, make, analyze, inspect
+            exit, help, load, show, meta, raise, sticky, make, analyze, inspect, snapshot
         >;
 
     } // namespace cmd
