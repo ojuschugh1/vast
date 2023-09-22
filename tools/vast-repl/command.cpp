@@ -11,6 +11,7 @@ VAST_RELAX_WARNINGS
 #include <mlir/Target/LLVMIR/ModuleTranslation.h>
 
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Dominators.h>
 #include <llvm/IR/LLVMContext.h>
 VAST_UNRELAX_WARNINGS
 
@@ -113,6 +114,7 @@ namespace cmd {
     void show_llvm(state_t &state) {
         if (!state.tower.llvm) {
             llvm::outs() << "no llvm module\n";
+            return;
         }
         llvm::outs() << *(state.tower.llvm);
     }
@@ -169,22 +171,12 @@ namespace cmd {
     //
     void emit_llvm(state_t &state) {
         auto &tower = state.tower;
-        auto op = tower.last_module();
-        // If the old data layout with high level types is left in the module,
-        // some parsing functionality inside the `mlir::translateModuleToLLVMIR`
-        // will fail and no conversion translation happens, even in case these
-        // entries are not used at all.
-        // auto old_dl = op->getAttr(mlir::DLTIDialect::kDataLayoutAttrName);
+        auto op = tower.last_module().clone();
         op->setAttr(
             mlir::DLTIDialect::kDataLayoutAttrName, mlir::DataLayoutSpecAttr::get(&state.ctx, {})
         );
 
         tower.llvm = mlir::translateModuleToLLVMIR(op, tower.llvm_context);
-
-        // Restore the data layout in case this module is getting re-used later.
-        // op->setAttr(mlir::DLTIDialect::kDataLayoutAttrName, old_dl);
-
-        // mlir::ExecutionEngine::setupTargetTriple(tower.llvm.get());
     }
 
 
@@ -259,6 +251,42 @@ namespace cmd {
 
         auto pl = state.pipelines[name.value];
         run_passes(state, pl.passes);
+    }
+
+    void analyze_llvm(state_t &state) {
+        if (!state.tower.llvm) {
+            llvm::outs() << "no llvm module\n";
+            return;
+        }
+
+        for (auto &fn : *state.tower.llvm) {
+            if (fn.empty()) {
+                continue;
+            }
+
+            llvm::errs() << "[vast] analyzing " << fn.getName() << "...\n";
+            state.function_info.emplace(std::piecewise_construct,
+              std::forward_as_tuple(&fn),
+              std::forward_as_tuple(function_analysis_info(&fn))
+            );
+
+            llvm::errs() << "[vast] built dominator tree\n";
+            llvm::errs() << "[vast] built target library info\n";
+            llvm::errs() << "[vast] built assumption cache\n";
+            llvm::errs() << "[vast] built alias analysis\n";
+            llvm::errs() << "[vast] built loop info\n";
+            llvm::errs() << "[vast] built scalar evolution\n";
+            llvm::errs() << "[vast] built dependence info\n";
+        }
+    }
+
+    void analyze::run(state_t &state) const {
+        auto name = get_param< target_param >(params);
+        if (name.value == "llvm") {
+            analyze_llvm(state);
+        } else {
+            llvm::errs() << "unknown analysis target: " << name.value << "\n";
+        }
     }
 
 } // namespace cmd

@@ -302,8 +302,30 @@ namespace vast::repl
             params_storage params;
         };
 
+        //
+        // da command
+        //
+        struct analyze : base {
+            static constexpr string_ref name() { return "analyze"; }
+
+            static constexpr inline char target_param[] = "target_name";
+
+            using command_params = util::type_list<
+                named_param< target_param, string_param >
+            >;
+
+            using params_storage = command_params::as_tuple;
+
+            analyze(const params_storage &params) : params(params) {}
+            analyze(params_storage &&params) : params(std::move(params)) {}
+
+            void run(state_t &state) const override;
+
+            params_storage params;
+        };
+
         using command_list = util::type_list<
-            exit, help, load, show, meta, raise, sticky, make
+            exit, help, load, show, meta, raise, sticky, make, analyze
         >;
 
     } // namespace cmd
