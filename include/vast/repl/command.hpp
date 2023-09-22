@@ -234,6 +234,9 @@ namespace vast::repl
             params_storage params;
         };
 
+        //
+        // sticky command executed after every command
+        //
         struct sticky : base {
             static constexpr string_ref name() { return "sticky"; }
 
@@ -276,7 +279,31 @@ namespace vast::repl
             params_storage params;
         };
 
-        using command_list = util::type_list< exit, help, load, show, meta, raise, sticky >;
+        //
+        // make command
+        //
+        struct make : base {
+            static constexpr string_ref name() { return "make"; }
+
+            static constexpr inline char pipeline_param[] = "pipeline_name";
+
+            using command_params = util::type_list<
+                named_param< pipeline_param, string_param >
+            >;
+
+            using params_storage = command_params::as_tuple;
+
+            make(const params_storage &params) : params(params) {}
+            make(params_storage &&params) : params(std::move(params)) {}
+
+            void run(state_t &state) const override;
+
+            params_storage params;
+        };
+
+        using command_list = util::type_list<
+            exit, help, load, show, meta, raise, sticky, make
+        >;
 
     } // namespace cmd
 
