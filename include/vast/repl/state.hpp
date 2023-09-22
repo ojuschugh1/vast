@@ -28,7 +28,7 @@ namespace vast::repl {
         // mlir module and context
         //
         mcontext_t &ctx;
-        std::optional< tw::default_tower > tower;
+        tw::default_tower tower;
 
         //
         // named snapshots into tower

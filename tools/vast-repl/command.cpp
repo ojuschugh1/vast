@@ -22,11 +22,11 @@ namespace cmd {
     }
 
     void check_and_emit_module(state_t &state) {
-        if (!state.tower) {
+        if (!state.snaps.count("source")) {
             const auto &source = get_source(state);
             auto mod           = codegen::emit_module(source, &state.ctx);
-            auto [t, _]        = tw::default_tower::get(state.ctx, std::move(mod));
-            state.tower        = std::move(t);
+            state.tower        = tw::default_tower::get(state.ctx, std::move(mod));
+            state.snaps["source"] = state.tower.top();
         }
     }
 
@@ -67,13 +67,13 @@ namespace cmd {
 
     void show_module(state_t &state) {
         check_and_emit_module(state);
-        llvm::outs() << state.tower->top().mod << "\n";
+        llvm::outs() << state.tower.last_module() << "\n";
     }
 
     void show_symbols(state_t &state) {
         check_and_emit_module(state);
 
-        util::symbols(state.tower->top().mod, [&] (auto symbol) {
+        util::symbols(state.tower.last_module(), [&] (auto symbol) {
             llvm::outs() << util::show_symbol_value(symbol) << "\n";
         });
     }
@@ -117,7 +117,7 @@ namespace cmd {
         using ::vast::meta::add_identifier;
 
         auto name_param = get_param< symbol_param >(params);
-        util::symbols(state.tower->top().mod, [&] (auto symbol) {
+        util::symbols(state.tower.last_module(), [&] (auto symbol) {
             if (util::symbol_name(symbol) == name_param.value) {
                 auto id = get_param< identifier_param >(params);
                 add_identifier(symbol, id.value);
@@ -129,7 +129,7 @@ namespace cmd {
     void meta::get(state_t &state) const {
         using ::vast::meta::get_with_identifier;
         auto id = get_param< identifier_param >(params);
-        for (auto op : get_with_identifier(state.tower->top().mod, id.value)) {
+        for (auto op : get_with_identifier(state.tower.last_module(), id.value)) {
             llvm::outs() << *op << "\n";
         }
     }
@@ -147,6 +147,29 @@ namespace cmd {
     //
     // raise command
     //
+
+    void run_passes(state_t &state, std::ranges::range auto passes) {
+        check_and_emit_module(state);
+        mlir::PassManager pm(&state.ctx);
+        auto last = state.tower.top();
+        for (const auto &pass : passes) {
+            if (state.verbose_pipeline) {
+                llvm::errs() << "[vast] running:  " << pass << "\n";
+            }
+
+            std::string pass_name = llvm::Twine("vast-" + pass).str();
+            if (mlir::failed(mlir::parsePassPipeline(pass_name, pm))) {
+                return;
+            }
+            last = state.tower.apply(last, pm);
+
+            if (state.verbose_pipeline) {
+                llvm::errs() << "[vast] snapshot: " << pass << "\n";
+            }
+            state.snaps[pass] = last;
+        }
+    }
+
     void raise::run(state_t &state) const {
         check_and_emit_module(state);
 
@@ -154,14 +177,7 @@ namespace cmd {
         llvm::SmallVector< llvm::StringRef, 2 > passes;
         llvm::StringRef(pipeline).split(passes, ',');
 
-        mlir::PassManager pm(&state.ctx);
-        auto th = state.tower->top();
-        for (auto pass : passes) {
-            if (mlir::failed(mlir::parsePassPipeline(pass, pm))) {
-                return;
-            }
-            th = state.tower->apply(th, pm);
-        }
+        run_passes(state, passes);
     }
 
     //
@@ -182,9 +198,22 @@ namespace cmd {
     //
     void snap::run(state_t &state) const {
         auto name = get_param< name_param >(params);
-        if (state.tower) {
-            state.snaps[name.value] = state.tower->top();
+        state.snaps[name.value] = state.tower.top();
+    }
+
+    //
+    // make command
+    //
+    void make::run(state_t &state) const {
+        auto name = get_param< pipeline_param >(params);
+
+        if (!state.pipelines.count(name.value)) {
+            llvm::errs() << "error: unknown pipeline " << name.value << "\n";
+            return;
         }
+
+        auto pl = state.pipelines[name.value];
+        run_passes(state, pl.passes);
     }
 
 } // namespace cmd
