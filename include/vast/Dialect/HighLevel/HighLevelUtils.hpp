@@ -17,15 +17,13 @@
 namespace vast::hl
 {
     template< typename T >
-    gap::generator< T > top_level_ops(vast_module module_op)
+    // TODO rename
+    gap::generator< T > top_level_ops(vast_module mod)
     {
-        auto body = module_op.getBody();
-        if (!body)
-            co_return;
-
-        for (auto &op : *body)
-            if (auto casted = mlir::dyn_cast< T >(op))
-                co_yield casted;
+        std::vector< T > ops;
+        mod.walk([&] (T child) { ops.push_back(child); });
+        for (auto op : ops)
+            co_yield op;
     }
 
     using type_generator = gap::generator< mlir::Type >;
