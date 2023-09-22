@@ -2,6 +2,18 @@
 
 #include "vast/repl/command.hpp"
 
+VAST_RELAX_WARNINGS
+#include <mlir/Dialect/LLVMIR/LLVMDialect.h>
+
+#include <mlir/ExecutionEngine/ExecutionEngine.h>
+#include <mlir/Target/LLVMIR/LLVMTranslationInterface.h>
+#include <mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h>
+#include <mlir/Target/LLVMIR/ModuleTranslation.h>
+
+#include <llvm/IR/Module.h>
+#include <llvm/IR/LLVMContext.h>
+VAST_UNRELAX_WARNINGS
+
 #include "vast/Conversion/Passes.hpp"
 #include "vast/Tower/Tower.hpp"
 #include "vast/repl/common.hpp"
@@ -23,9 +35,9 @@ namespace cmd {
 
     void check_and_emit_module(state_t &state) {
         if (!state.snaps.count("source")) {
-            const auto &source = get_source(state);
-            auto mod           = codegen::emit_module(source, &state.ctx);
-            state.tower        = tw::default_tower::get(state.ctx, std::move(mod));
+            state.tower.mods.push_back(
+                codegen::emit_module(get_source(state), &state.ctx)
+            );
             state.snaps["source"] = state.tower.top();
         }
     }
@@ -98,6 +110,13 @@ namespace cmd {
         }
     }
 
+    void show_llvm(state_t &state) {
+        if (!state.tower.llvm) {
+            llvm::outs() << "no llvm module\n";
+        }
+        llvm::outs() << *(state.tower.llvm);
+    }
+
     void show::run(state_t &state) const {
         auto what = get_param< kind_param >(params);
         switch (what) {
@@ -107,6 +126,7 @@ namespace cmd {
             case show_kind::symbols: return show_symbols(state);
             case show_kind::snaps:   return show_snaps(state);
             case show_kind::pipelines: return show_pipelines(state);
+            case show_kind::llvm: return show_llvm(state);
         }
     };
 
@@ -147,6 +167,26 @@ namespace cmd {
     //
     // raise command
     //
+    void emit_llvm(state_t &state) {
+        auto &tower = state.tower;
+        auto op = tower.last_module();
+        // If the old data layout with high level types is left in the module,
+        // some parsing functionality inside the `mlir::translateModuleToLLVMIR`
+        // will fail and no conversion translation happens, even in case these
+        // entries are not used at all.
+        // auto old_dl = op->getAttr(mlir::DLTIDialect::kDataLayoutAttrName);
+        op->setAttr(
+            mlir::DLTIDialect::kDataLayoutAttrName, mlir::DataLayoutSpecAttr::get(&state.ctx, {})
+        );
+
+        tower.llvm = mlir::translateModuleToLLVMIR(op, tower.llvm_context);
+
+        // Restore the data layout in case this module is getting re-used later.
+        // op->setAttr(mlir::DLTIDialect::kDataLayoutAttrName, old_dl);
+
+        // mlir::ExecutionEngine::setupTargetTriple(tower.llvm.get());
+    }
+
 
     void run_passes(state_t &state, std::ranges::range auto passes) {
         check_and_emit_module(state);
@@ -155,6 +195,11 @@ namespace cmd {
         for (const auto &pass : passes) {
             if (state.verbose_pipeline) {
                 llvm::errs() << "[vast] running:  " << pass << "\n";
+            }
+
+            if (pass == "emit-llvm") {
+                emit_llvm(state);
+                continue;
             }
 
             std::string pass_name = llvm::Twine("vast-" + pass).str();

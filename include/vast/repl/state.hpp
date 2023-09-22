@@ -12,7 +12,7 @@
 namespace vast::repl {
 
     struct state_t {
-        explicit state_t(mcontext_t &ctx) : ctx(ctx) {}
+        explicit state_t(mcontext_t &ctx) : ctx(ctx), tower(ctx) {}
 
         //
         // perform exit in next step
@@ -49,6 +49,8 @@ namespace vast::repl {
         // verbosity flags
         //
         bool verbose_pipeline = true;
+
+        llvm::LLVMContext llvm_context;
     };
 
 } // namespace vast::repl

@@ -11,8 +11,6 @@ VAST_UNRELAX_WARNINGS
 
 namespace vast::tw {
 
-    using llvm_module = llvm::Module *;
-
     struct default_loc_rewriter_t
     {
         static auto insert(mlir::Operation *op) -> void;
@@ -28,21 +26,17 @@ namespace vast::tw {
         using loc_rewriter = loc_rewriter_t;
         using module_storage_t = std::vector< owning_module_ref >;
 
-        mcontext_t *ctx;
+        mcontext_t &ctx;
         module_storage_t mods;
-        std::optional< llvm_module > llvm;
+
+        llvm::LLVMContext llvm_context;
+        std::unique_ptr< llvm::Module > llvm;
 
         struct handle_t
         {
             std::size_t id;
             vast_module mod;
         };
-
-        static auto get(mcontext_t &ctx, owning_module_ref mod) {
-            tower t{ .ctx = &ctx };
-            t.mods.push_back(std::move(mod));
-            return t;
-        }
 
         auto apply(handle_t handle, mlir::PassManager &pm) -> handle_t {
             handle.mod.walk(loc_rewriter::insert);
@@ -62,7 +56,7 @@ namespace vast::tw {
         }
 
         auto apply(handle_t handle, pass_ptr_t pass) -> handle_t {
-            mlir::PassManager pm(ctx);
+            mlir::PassManager pm(&ctx);
             pm.addPass(std::move(pass));
             return apply(handle, pm);
         }

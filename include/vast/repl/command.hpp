@@ -44,7 +44,7 @@ namespace vast::repl
         struct string_param  { std::string value; };
         struct integer_param { std::uint64_t value; };
 
-        enum class show_kind { source, ast, module, symbols, snaps, pipelines };
+        enum class show_kind { source, ast, module, symbols, snaps, pipelines, llvm };
 
         template< typename enum_type >
         enum_type from_string(string_ref token) requires(std::is_same_v< enum_type, show_kind >) {
@@ -54,6 +54,7 @@ namespace vast::repl
             if (token == "symbols") return enum_type::symbols;
             if (token == "snaps")   return enum_type::snaps;
             if (token == "pipelines")   return enum_type::pipelines;
+            if (token == "llvm")    return enum_type::llvm;
             VAST_UNREACHABLE("uknnown show kind: {0}", token.str());
         }
 
