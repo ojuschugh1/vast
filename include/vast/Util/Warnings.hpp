@@ -53,7 +53,7 @@ VAST_UNRELAX_WARNINGS
 #include <sstream>
 #endif
 
-#define DEBUG_TYPE "vast"
+// #define DEBUG_TYPE "vast"
 
 namespace vast {
 

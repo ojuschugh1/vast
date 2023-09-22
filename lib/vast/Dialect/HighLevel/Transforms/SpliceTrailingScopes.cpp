@@ -28,7 +28,9 @@ namespace vast::hl
         void splice_trailing_scope(operation op)
         {
             auto scope = mlir::dyn_cast< core::ScopeOp >(op);
-            VAST_ASSERT(scope && "Op is not a scope!");
+            if (!scope) {
+                return;
+            }
 
             auto parent = scope->getParentRegion();
             auto target = scope->getBlock();
@@ -51,30 +53,17 @@ namespace vast::hl
             scope.erase();
         }
 
-        void find(Block &block)
-        {
-            for (auto &op : block.getOperations())
-                find(&op);
-        }
-
-        void find(Region &region)
-        {
-            for (auto &block : region.getBlocks())
-                find(block);
-        }
-
-        void find(operation op)
-        {
-            if (is_trailing_scope(op))
-                to_splice.emplace_back(op);
-            for (auto &region : op->getRegions())
-                find(region);
-        }
-
         void runOnOperation() override
         {
             auto op = getOperation();
-            find(op);
+
+            // TODO mark illegal trailing scopes
+
+            op.walk([&] (core::ScopeOp op) {
+                if (is_trailing_scope(op))
+                    to_splice.emplace_back(op);
+            });
+
             std::reverse(to_splice.begin(), to_splice.end());
             for (auto op : to_splice)
                 splice_trailing_scope(op);
