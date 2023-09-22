@@ -23,21 +23,10 @@ VAST_UNRELAX_WARNINGS
 namespace vast::repl {
 namespace cmd {
 
-    void check_source(const state_t &state) {
-        if (!state.source.has_value()) {
-            VAST_UNREACHABLE("error: missing source");
-        }
-    }
-
-    const std::string &get_source(const state_t &state) {
-        check_source(state);
-        return state.source.value();
-    }
-
     void check_and_emit_module(state_t &state) {
         if (!state.snaps.count("source")) {
             state.tower.mods.push_back(
-                codegen::emit_module(get_source(state), &state.ctx)
+                codegen::emit_module(state.path, &state.ctx)
             );
             state.snaps["source"] = state.tower.top();
         }
@@ -62,25 +51,29 @@ namespace cmd {
     //
     void load::run(state_t &state) const {
         auto source  = get_param< source_param >(params);
-        state.source = codegen::get_source(source.path);
+        state.path = source.path;
     };
 
     //
     // show command
     //
     void show_source(const state_t &state) {
-        llvm::outs() << get_source(state) << "\n";
+        llvm::outs() << codegen::get_source(state.path) << "\n";
     }
 
     void show_ast(const state_t &state) {
-        auto unit = codegen::ast_from_source(get_source(state));
+        auto unit = codegen::ast_from_source(state.path);
         unit->getASTContext().getTranslationUnitDecl()->dump(llvm::outs());
         llvm::outs() << "\n";
     }
 
-    void show_module(state_t &state) {
+    void show_module(state_t &state, bool locations) {
         check_and_emit_module(state);
-        llvm::outs() << state.tower.last_module() << "\n";
+        mlir::OpPrintingFlags flags;
+        if (locations) {
+            flags.enableDebugInfo();
+        }
+        state.tower.last_module().print(llvm::outs(), flags);
     }
 
     void show_symbols(state_t &state) {
@@ -121,10 +114,11 @@ namespace cmd {
 
     void show::run(state_t &state) const {
         auto what = get_param< kind_param >(params);
+        auto locs = get_param< locations_param >(params);
         switch (what) {
             case show_kind::source:  return show_source(state);
             case show_kind::ast:     return show_ast(state);
-            case show_kind::module:  return show_module(state);
+            case show_kind::module:  return show_module(state, locs.set);
             case show_kind::symbols: return show_symbols(state);
             case show_kind::snaps:   return show_snaps(state);
             case show_kind::pipelines: return show_pipelines(state);

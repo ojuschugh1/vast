@@ -33,13 +33,19 @@ VAST_UNRELAX_WARNINGS
 namespace vast::cg
 {
     namespace detail {
-        static inline owning_module_ref create_module(mcontext_t &mctx, acontext_t &actx) {
+        static inline owning_module_ref create_module(
+            mcontext_t &mctx, acontext_t &actx, mlir::Location loc
+        ) {
             // TODO(Heno): fix module location
-            auto module_ref = owning_module_ref(vast_module::create(mlir::UnknownLoc::get(&mctx)));
+            auto module_ref = owning_module_ref(vast_module::create(loc));
             // TODO(cg): For now we do not have our own operation, so we cannot
             //           introduce new ctor.
             set_triple(*module_ref, actx.getTargetInfo().getTriple().str());
             return module_ref;
+        }
+
+        static inline owning_module_ref create_module(mcontext_t &mctx, acontext_t &actx) {
+            return create_module(mctx, actx, mlir::UnknownLoc::get(&mctx));
         }
     } // namespace detail
 
@@ -59,6 +65,10 @@ namespace vast::cg
 
         CodeGenContext(mcontext_t &mctx, acontext_t &actx)
             : CodeGenContext(mctx, actx, detail::create_module(mctx, actx))
+        {}
+
+        CodeGenContext(mcontext_t &mctx, acontext_t &actx, mlir::Location loc)
+            : CodeGenContext(mctx, actx, detail::create_module(mctx, actx, loc))
         {}
 
         lexical_scope_context *current_lexical_scope = nullptr;

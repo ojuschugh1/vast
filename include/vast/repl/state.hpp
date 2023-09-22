@@ -25,6 +25,7 @@ VAST_RELAX_WARNINGS
 #include <llvm/ADT/StringMap.h>
 VAST_UNRELAX_WARNINGS
 
+#include <filesystem>
 
 namespace vast::repl {
 
@@ -64,7 +65,7 @@ namespace vast::repl {
         //
         // c/c++ source file to compile
         //
-        std::optional< std::string > source;
+        std::filesystem::path path;
 
         //
         // mlir module and context

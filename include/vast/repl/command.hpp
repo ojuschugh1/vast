@@ -30,10 +30,6 @@ namespace vast::repl
 
     namespace cmd
     {
-        void check_source(const state_t &state);
-
-        const std::string &get_source(const state_t &state);
-
         void check_and_emit_module(state_t &state);
 
         //
@@ -170,9 +166,11 @@ namespace vast::repl
             static constexpr string_ref name() { return "show"; }
 
             static constexpr inline char kind_param[] = "kind_param_name";
+            static constexpr inline char locations_param[] = "locations";
 
             using command_params = util::type_list<
-                named_param< kind_param, show_kind >
+                named_param< kind_param, show_kind >,
+                named_param< locations_param, flag_param >
             >;
 
             using params_storage = command_params::as_tuple;
