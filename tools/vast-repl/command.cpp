@@ -24,11 +24,10 @@ namespace vast::repl {
 namespace cmd {
 
     void check_and_emit_module(state_t &state) {
-        if (!state.snaps.count("source")) {
-            state.tower.mods.push_back(
+        if (!state.tower.has_snapshot("source")) {
+            state.tower.foundation(
                 codegen::emit_module(state.path, &state.ctx)
             );
-            state.snaps["source"] = state.tower.top();
         }
     }
 
@@ -52,6 +51,9 @@ namespace cmd {
     void load::run(state_t &state) const {
         auto source  = get_param< source_param >(params);
         state.path = source.path;
+        state.tower.initialize(
+            source.path.replace_extension("").string() + ".tower"
+        );
     };
 
     //
@@ -84,12 +86,12 @@ namespace cmd {
         });
     }
 
-    void show_snaps(state_t &state) {
-        if (state.snaps.empty()) {
+    void show_snapshots(state_t &state) {
+        if (state.tower.snaps.empty()) {
             llvm::outs() << "error: no tower snapshots\n";
         }
 
-        for (const auto &[name, _] : state.snaps) {
+        for (const auto &[name, _] : state.tower.snaps) {
             llvm::outs() << name << "\n";
         }
     }
@@ -120,7 +122,7 @@ namespace cmd {
             case show_kind::ast:     return show_ast(state);
             case show_kind::module:  return show_module(state, locs.set);
             case show_kind::symbols: return show_symbols(state);
-            case show_kind::snaps:   return show_snaps(state);
+            case show_kind::snapshots:   return show_snapshots(state);
             case show_kind::pipelines: return show_pipelines(state);
             case show_kind::llvm: return show_llvm(state);
         }
@@ -173,11 +175,8 @@ namespace cmd {
         tower.llvm = mlir::translateModuleToLLVMIR(op, tower.llvm_context);
     }
 
-
     void run_passes(state_t &state, std::ranges::range auto passes) {
         check_and_emit_module(state);
-        mlir::PassManager pm(&state.ctx);
-        auto last = state.tower.top();
         for (const auto &pass : passes) {
             if (state.verbose_pipeline) {
                 llvm::errs() << "[vast] running:  " << pass << "\n";
@@ -189,15 +188,11 @@ namespace cmd {
             }
 
             std::string pass_name = llvm::Twine("vast-" + pass).str();
-            if (mlir::failed(mlir::parsePassPipeline(pass_name, pm))) {
-                return;
-            }
-            last = state.tower.apply(last, pm);
+            state.tower.raise(pass_name, pass);
 
             if (state.verbose_pipeline) {
                 llvm::errs() << "[vast] snapshot: " << pass << "\n";
             }
-            state.snaps[pass] = last;
         }
     }
 
@@ -222,14 +217,6 @@ namespace cmd {
     void add_sticky_command(string_ref cmd, state_t &state) {
         auto tokens = parse_tokens(cmd);
         state.sticked.push_back(parse_command(tokens));
-    }
-
-    //
-    // snap command
-    //
-    void snap::run(state_t &state) const {
-        auto name = get_param< name_param >(params);
-        state.snaps[name.value] = state.tower.top();
     }
 
     //
@@ -281,6 +268,15 @@ namespace cmd {
         } else {
             llvm::errs() << "unknown analysis target: " << name.value << "\n";
         }
+    }
+
+    void inspect::run(state_t &state) const {
+        auto layer_name = get_param< layer_param >(params);
+        auto location = get_param< location_param >(params);
+
+        // layer.mod.walk([] (operation op) {
+        //     llvm::errs() << op->getLoc() << "\n";
+        // });
     }
 
 } // namespace cmd

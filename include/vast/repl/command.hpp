@@ -40,7 +40,7 @@ namespace vast::repl
         struct string_param  { std::string value; };
         struct integer_param { std::uint64_t value; };
 
-        enum class show_kind { source, ast, module, symbols, snaps, pipelines, llvm };
+        enum class show_kind { source, ast, module, symbols, snapshots, pipelines, llvm };
 
         template< typename enum_type >
         enum_type from_string(string_ref token) requires(std::is_same_v< enum_type, show_kind >) {
@@ -48,7 +48,7 @@ namespace vast::repl
             if (token == "ast")     return enum_type::ast;
             if (token == "module")  return enum_type::module;
             if (token == "symbols") return enum_type::symbols;
-            if (token == "snaps")   return enum_type::snaps;
+            if (token == "snapshots")   return enum_type::snapshots;
             if (token == "pipelines")   return enum_type::pipelines;
             if (token == "llvm")    return enum_type::llvm;
             VAST_UNREACHABLE("uknnown show kind: {0}", token.str());
@@ -257,28 +257,6 @@ namespace vast::repl
         void add_sticky_command(string_ref cmd, state_t &state);
 
         //
-        // snap command
-        //
-        struct snap : base {
-            static constexpr string_ref name() { return "snap"; }
-
-            static constexpr inline char name_param[] = "snapshot_name";
-
-            using command_params = util::type_list<
-                named_param< name_param, string_param >
-            >;
-
-            using params_storage = command_params::as_tuple;
-
-            snap(const params_storage &params) : params(params) {}
-            snap(params_storage &&params) : params(std::move(params)) {}
-
-            void run(state_t &state) const override;
-
-            params_storage params;
-        };
-
-        //
         // make command
         //
         struct make : base {
@@ -301,7 +279,7 @@ namespace vast::repl
         };
 
         //
-        // da command
+        // analyze command
         //
         struct analyze : base {
             static constexpr string_ref name() { return "analyze"; }
@@ -322,8 +300,32 @@ namespace vast::repl
             params_storage params;
         };
 
+        //
+        // inspect command
+        //
+        struct inspect : base {
+            static constexpr string_ref name() { return "inspect"; }
+
+            static constexpr inline char layer_param[]  = "layer_name";
+            static constexpr inline char location_param[] = "symbol_name";
+
+            using command_params = util::type_list<
+                named_param< layer_param, string_param >,
+                named_param< location_param, string_param >
+            >;
+
+            using params_storage = command_params::as_tuple;
+
+            inspect(const params_storage &params) : params(params) {}
+            inspect(params_storage &&params) : params(std::move(params)) {}
+
+            void run(state_t &state) const override;
+
+            params_storage params;
+        };
+
         using command_list = util::type_list<
-            exit, help, load, show, meta, raise, sticky, make, analyze
+            exit, help, load, show, meta, raise, sticky, make, analyze, inspect
         >;
 
     } // namespace cmd

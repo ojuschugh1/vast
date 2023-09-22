@@ -71,12 +71,8 @@ namespace vast::repl {
         // mlir module and context
         //
         mcontext_t &ctx;
-        tw::default_tower tower;
+        tw::tower tower;
 
-        //
-        // named snapshots into tower
-        //
-        llvm::StringMap< tw::default_tower::handle_t > snaps;
 
         //
         // sticked commands performed after each step
