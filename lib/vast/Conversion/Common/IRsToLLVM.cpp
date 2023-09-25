@@ -877,7 +877,6 @@ namespace vast::conv::irstollvm
             if (rhs.getType().template isa< hl::LValueType >())
                 return logical_result::failure();
 
-            auto load_lhs = rewriter.create< LLVM::LoadOp >(op.getLoc(), lhs);
             auto target_ty = this->convert(op.getSrc().getType());
 
             // Probably the easiest way to compose this (some template specialization would
@@ -885,9 +884,12 @@ namespace vast::conv::irstollvm
             auto new_op = [&]()
             {
                 if constexpr (!std::is_same_v< Trg, void >)
+                {
+                    auto load_lhs = rewriter.create< LLVM::LoadOp >(op.getLoc(), lhs);                     // <<< here
                     return rewriter.create< Trg >(op.getLoc(), target_ty, load_lhs, rhs);
-                else
+                } else {
                     return rhs;
+                }
             }();
 
             rewriter.create< LLVM::StoreOp >(op.getLoc(), new_op, lhs);
@@ -1274,7 +1276,17 @@ namespace vast::conv::irstollvm
             op_t op, adaptor_t ops,
             conversion_rewriter &rewriter
         ) const override {
-            rewriter.replaceOp(op, {ops.getValue()});
+            auto type = op.getType();
+            if (auto lvalue = mlir::dyn_cast< hl::LValueType >(type)) {
+                type = lvalue.getElementType();
+            }
+
+            auto trg_type = convert(type);
+            auto cast = rewriter.template create< mlir::LLVM::BitcastOp >(
+                    op.getLoc(),
+                    trg_type,
+                    ops.getOperands());
+            rewriter.replaceOp(op, {cast});
             return logical_result::success();
         }
     };
