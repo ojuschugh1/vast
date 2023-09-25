@@ -350,10 +350,10 @@ namespace vast::repl
         };
 
         //
-        // depends command
+        // alias command
         //
-        struct depends : base {
-            static constexpr string_ref name() { return "depends"; }
+        struct alias : base {
+            static constexpr string_ref name() { return "alias"; }
 
             static constexpr inline char first_param[] = "first_name";
             static constexpr inline char second_param[] = "second_name";
@@ -366,8 +366,8 @@ namespace vast::repl
 
             using params_storage = command_params::as_tuple;
 
-            depends(const params_storage &params) : params(params) {}
-            depends(params_storage &&params) : params(std::move(params)) {}
+            alias(const params_storage &params) : params(params) {}
+            alias(params_storage &&params) : params(std::move(params)) {}
 
             void run(state_t &state) const override;
 
@@ -375,7 +375,7 @@ namespace vast::repl
         };
 
         using command_list = util::type_list<
-            exit, help, load, show, meta, raise, sticky, make, analyze, inspect, snapshot, depends
+            exit, help, load, show, meta, raise, sticky, make, analyze, inspect, snapshot, alias
         >;
 
     } // namespace cmd

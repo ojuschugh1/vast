@@ -12,6 +12,7 @@ VAST_RELAX_WARNINGS
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Dominators.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/InstIterator.h>
 VAST_UNRELAX_WARNINGS
 
 #include "vast/Conversion/Passes.hpp"
@@ -271,7 +272,6 @@ namespace cmd {
             for (auto m_var : hl::top_level_ops< mlir::LLVM::GlobalOp >(m_mod)) {
                 auto l_var = l_mod->getGlobalVariable(m_var.getName());
                 global_vars.emplace(m_var, l_var);
-                llvm::errs() << "Matched globals!\n";
             }
         }
 
@@ -375,6 +375,7 @@ namespace cmd {
               std::forward_as_tuple(function_analysis_info(&fn))
             );
 
+
             llvm::errs() << "[vast] built dominator tree\n";
             llvm::errs() << "[vast] built target library info\n";
             llvm::errs() << "[vast] built assumption cache\n";
@@ -459,7 +460,7 @@ namespace cmd {
         }
     }
 
-    void depends::run(state_t &state) const {
+    void alias::run(state_t &state) const {
         auto first_name  = get_param< first_param >(params);
         auto second_name = get_param< second_param >(params);
 
@@ -475,12 +476,28 @@ namespace cmd {
 
         auto a = in_llvm(first_name.value);
         auto b = in_llvm(second_name.value);
-    }
 
-    // TODO: write depends command a b
-    // 1. get instruction ai bi in last layer
-    // 2. lookup dependence info in llvm vor ai bi
-    // 3. return result for hl
+        auto main = state.tower.llvm->getFunction("main");
+        auto info = function_analysis_info(main);
+
+        auto alias_result = [&] () -> std::optional< llvm::AliasResult > {
+            for (auto ai : a) {
+                for (auto bi : b) {
+                    if (auto res = info.aa.alias(ai, bi); static_cast< llvm::AliasResult::Kind >(res) != llvm::AliasResult::NoAlias) {
+                        return res;
+                    }
+                }
+            }
+
+            return std::nullopt;
+        } ();
+
+        if (alias_result.has_value()) {
+            llvm::outs() << alias_result.value() << "\n";
+        } else {
+            llvm::outs() << "no alias\n";
+        }
+    }
 
     void snapshot::run(state_t &state) const {
         auto snapshot_name = get_param< name_param >(params);
