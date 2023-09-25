@@ -10,6 +10,7 @@ VAST_RELAX_WARNINGS
 #include <llvm/IR/Module.h>
 
 #include <mlir/Transforms/LocationSnapshot.h>
+#include <mlir/Target/LLVMIR/ModuleTranslation.h>
 VAST_UNRELAX_WARNINGS
 
 #include <filesystem>
@@ -37,7 +38,12 @@ namespace vast::tw {
         llvm::LLVMContext llvm_context;
         std::unique_ptr< llvm::Module > llvm;
 
+        using mlir_to_llvm = std::unordered_map< mlir::Operation *, llvm::Instruction * >;
+        mlir_to_llvm value_mapping;
+
         auto last_module() -> vast_module { return layers.back().get(); }
+
+        auto source_module() -> vast_module { return layers.front().get(); }
 
         void make_snapshot(string_ref name) {
             mlir::OpPrintingFlags flags;

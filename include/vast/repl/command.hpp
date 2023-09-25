@@ -307,11 +307,11 @@ namespace vast::repl
             static constexpr string_ref name() { return "inspect"; }
 
             static constexpr inline char layer_param[]  = "layer_name";
-            static constexpr inline char location_param[] = "symbol_name";
+            static constexpr inline char symbol_param[] = "symbol_name";
 
             using command_params = util::type_list<
                 named_param< layer_param, string_param >,
-                named_param< location_param, string_param >
+                named_param< symbol_param, string_param >
             >;
 
             using params_storage = command_params::as_tuple;
@@ -349,8 +349,33 @@ namespace vast::repl
             params_storage params;
         };
 
+        //
+        // depends command
+        //
+        struct depends : base {
+            static constexpr string_ref name() { return "depends"; }
+
+            static constexpr inline char first_param[] = "first_name";
+            static constexpr inline char second_param[] = "second_name";
+
+            using command_params =
+                util::type_list<
+                    named_param< first_param, string_param >,
+                    named_param< second_param, string_param >
+                >;
+
+            using params_storage = command_params::as_tuple;
+
+            depends(const params_storage &params) : params(params) {}
+            depends(params_storage &&params) : params(std::move(params)) {}
+
+            void run(state_t &state) const override;
+
+            params_storage params;
+        };
+
         using command_list = util::type_list<
-            exit, help, load, show, meta, raise, sticky, make, analyze, inspect, snapshot
+            exit, help, load, show, meta, raise, sticky, make, analyze, inspect, snapshot, depends
         >;
 
     } // namespace cmd

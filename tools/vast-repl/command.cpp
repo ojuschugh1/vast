@@ -8,7 +8,6 @@ VAST_RELAX_WARNINGS
 #include <mlir/ExecutionEngine/ExecutionEngine.h>
 #include <mlir/Target/LLVMIR/LLVMTranslationInterface.h>
 #include <mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h>
-#include <mlir/Target/LLVMIR/ModuleTranslation.h>
 
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Dominators.h>
@@ -18,7 +17,12 @@ VAST_UNRELAX_WARNINGS
 #include "vast/Conversion/Passes.hpp"
 #include "vast/Tower/Tower.hpp"
 #include "vast/repl/common.hpp"
+
+#include <vast/Dialect/HighLevel/HighLevelUtils.hpp>
+
 #include <optional>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace vast::repl {
 namespace cmd {
@@ -165,14 +169,134 @@ namespace cmd {
     //
     // raise command
     //
+
+    namespace LLVM = mlir::LLVM;
+
+    struct get_mapping
+    {
+        // func to mapping of its things
+        std::map< std::string, tw::tower::mlir_to_llvm > function_mapping;
+        std::map< operation, llvm::GlobalVariable * > global_vars;
+        std::map< operation, llvm::Function * > global_functions;
+
+        inline static const std::unordered_set< std::string > m_skip = { "llvm.mlir.constant" };
+
+        inline static const std::unordered_set< std::string > allowed_miss = {
+            "llvm.bitcast", "llvm.mlir.addressof"
+        };
+
+        inline static const std::unordered_set< std::string > l_skip = {};
+
+        inline static const std::unordered_map< std::string, std::string > translations = {
+            {        "llvm.alloca",        "alloca"},
+            {       "llvm.bitcast",       "bitcast"},
+            {         "llvm.store",         "store"},
+            {          "llvm.load",          "load"},
+            {        "llvm.return",           "ret"},
+            {          "llvm.call",          "call"},
+            { "llvm.getelementptr", "getelementptr"},
+
+            {"llvm.mlir.addressof",              ""}
+        };
+
+        std::tuple< mlir::LLVM::LLVMFuncOp, llvm::Function * >
+        get_fn(auto name, auto m_mod, auto l_mod) {
+            auto l_fn = l_mod->getFunction(name);
+            for (auto m_fn : hl::top_level_ops< mlir::LLVM::LLVMFuncOp >(m_mod)) {
+                if (m_fn.getName() == name) {
+                    return { m_fn, l_fn };
+                }
+            }
+
+            return {};
+        }
+
+        auto key(mlir::Block::iterator it) -> std::string {
+            return it->getName().getStringRef().str();
+        }
+
+        auto key(llvm::BasicBlock::iterator it) -> std::string { return it->getOpcodeName(); }
+
+        bool skip(mlir::Block::iterator it) { return m_skip.count(key(it)); }
+
+        bool skip(llvm::BasicBlock::iterator it) { return l_skip.count(key(it)); }
+
+        bool match(auto m_it, auto l_it) {
+            auto m = translations.find(key(m_it));
+            VAST_CHECK(
+                m != translations.end(), "Missing translation {0}: {1}", key(m_it), *m_it
+            );
+            return m->second == key(l_it);
+        }
+
+        auto annotate_functions(mlir::ModuleOp op, llvm::Module *l_mod) {
+            auto [m_func, l_func] = get_fn("main", op, l_mod);
+            VAST_ASSERT(m_func && l_func);
+            global_functions.emplace(m_func, l_func);
+
+            auto &current = function_mapping["main"];
+
+            auto m_it                        = m_func.getRegion().begin()->begin();
+            auto m_end                       = m_func.getRegion().begin()->end();
+            llvm::BasicBlock::iterator l_it  = l_func->begin()->begin();
+            llvm::BasicBlock::iterator l_end = l_func->begin()->end();
+
+            while (m_it != m_end) {
+                if (skip(m_it)) {
+                    ++m_it;
+                    continue;
+                }
+                VAST_ASSERT(l_it != l_end);
+
+
+                if (!match(m_it, l_it)) {
+                    if (skip(l_it)) {
+                        ++l_it;
+                        continue;
+                    }
+                    if (allowed_miss.count(key(m_it))) {
+                        ++m_it;
+                        continue;
+                    }
+                    VAST_CHECK(false, "Cannot progress on {0}!", key(m_it));
+                }
+
+                current.emplace(&*m_it, &*l_it);
+                ++l_it;
+                ++m_it;
+            }
+        }
+
+        auto annotate_gvs(mlir::ModuleOp m_mod, llvm::Module *l_mod) {
+            for (auto m_var : hl::top_level_ops< mlir::LLVM::GlobalOp >(m_mod)) {
+                auto l_var = l_mod->getGlobalVariable(m_var.getName());
+                global_vars.emplace(m_var, l_var);
+                llvm::errs() << "Matched globals!\n";
+            }
+        }
+
+        void get(mlir::ModuleOp m_mod, llvm::Module *l_mod) {
+            annotate_functions(m_mod, l_mod);
+            annotate_gvs(m_mod, l_mod);
+        }
+    };
+
     void emit_llvm(state_t &state) {
         auto &tower = state.tower;
         auto op = tower.last_module().clone();
+        tower.make_snapshot("llvm");
         op->setAttr(
             mlir::DLTIDialect::kDataLayoutAttrName, mlir::DataLayoutSpecAttr::get(&state.ctx, {})
         );
 
-        tower.llvm = mlir::translateModuleToLLVMIR(op, tower.llvm_context);
+        auto mod = mlir::translateModuleToLLVMIR(op, tower.llvm_context, "LLVMDialectModule");
+        tower.llvm = std::move(mod);
+
+        get_mapping mapping;
+        // use old module snapshotted in tower
+        mapping.get(tower.last_module(), tower.llvm.get());
+        // TODO FIXME
+        tower.value_mapping = mapping.function_mapping["main"];
     }
 
     void run_passes(state_t &state, std::ranges::range auto passes) {
@@ -270,10 +394,93 @@ namespace cmd {
         }
     }
 
+    void symbols_with_name(auto module, string_ref name, auto &&yield) {
+        util::symbols(module, [&] (auto symbol) {
+            if (util::symbol_name(symbol) == name) {
+                yield(symbol);
+            }
+        });
+    }
+
+    std::optional< mlir::Location > get_location_in_layer(mlir::FusedLoc fused, string_ref layer) {
+        for (auto loc : fused.getLocations()) {
+            if (auto named = llvm::dyn_cast< mlir::NameLoc >(loc)) {
+                if (named.getName() == layer) {
+                    return named;
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    void project(
+        const auto &orig, auto &layer, auto &&yield, string_ref from_layer = "source"
+    ) {
+        auto get_source_loc = [&] (auto op) {
+            return get_location_in_layer(
+                mlir::cast< mlir::FusedLoc >(op->getLoc()), from_layer
+            );
+        };
+
+        auto origin_location = get_source_loc(orig).value();
+        layer.walk([&] (operation op) {
+            if (auto loc = get_source_loc(op); loc && origin_location == loc.value()) {
+                yield(op);
+            }
+        });
+    }
+
+    void project_symbol(
+        state_t &state, const auto &symbol_name, const auto &layer_name, auto &&yield,
+        string_ref from_layer = "source"
+    ) {
+        symbols_with_name(state.tower.snaps[from_layer], symbol_name, [&] (auto symbol) {
+            auto layer = state.tower.snaps[layer_name];
+            project(symbol, layer, yield, from_layer);
+        });
+    }
+
     void inspect::run(state_t &state) const {
         auto layer_name = get_param< layer_param >(params);
-        auto location = get_param< location_param >(params);
+        auto symbol_name = get_param< symbol_param >(params);
+
+        if (layer_name.value == "llvm") {
+            project_symbol(state, symbol_name.value, layer_name.value, [&] (auto op) {
+                if (state.tower.value_mapping.count(op)) {
+                    state.tower.value_mapping[op]->print(llvm::outs());
+                    llvm::outs() << "\n";
+                }
+            });
+        } else {
+            project_symbol(state, symbol_name.value, layer_name.value, [] (auto op) {
+                op->dump();
+            });
+        }
     }
+
+    void depends::run(state_t &state) const {
+        auto first_name  = get_param< first_param >(params);
+        auto second_name = get_param< second_param >(params);
+
+        auto in_llvm = [&] (auto symbol) {
+            std::vector< llvm::Instruction * > ops;
+            project_symbol(state, symbol, "irs-to-llvm", [&] (auto op) {
+                if (state.tower.value_mapping.count(op)) {
+                    ops.push_back(state.tower.value_mapping[op]);
+                }
+            });
+            return ops;
+        };
+
+        auto a = in_llvm(first_name.value);
+        auto b = in_llvm(second_name.value);
+    }
+
+    // TODO: write depends command a b
+    // 1. get instruction ai bi in last layer
+    // 2. lookup dependence info in llvm vor ai bi
+    // 3. return result for hl
 
     void snapshot::run(state_t &state) const {
         auto snapshot_name = get_param< name_param >(params);
